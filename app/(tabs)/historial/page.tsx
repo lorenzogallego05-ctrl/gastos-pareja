@@ -44,7 +44,7 @@ export default function HistorialPage() {
           onChange={(e) => setMes(e.target.value)}
           className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
         >
-          <option value="">Todos los meses</option>
+          <option value="">Mes</option>
           {meses.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -57,7 +57,7 @@ export default function HistorialPage() {
           onChange={(e) => setCategoria(e.target.value as Categoria | "")}
           className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
         >
-          <option value="">Toda categoría</option>
+          <option value="">Categoría</option>
           {CATEGORIAS.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -70,7 +70,7 @@ export default function HistorialPage() {
           onChange={(e) => setPagadoPor(e.target.value as Persona | "")}
           className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
         >
-          <option value="">Quién pagó</option>
+          <option value="">Quién</option>
           <option value="Lolo">Lolo</option>
           <option value="Jaz">Jaz</option>
         </select>

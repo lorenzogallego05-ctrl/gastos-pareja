@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/useAuth";
 import { Persona } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const PIN_STORAGE_KEY = "gastos-pareja:pin-ok";
 const PIN_CONFIGURADO = process.env.NEXT_PUBLIC_APP_PIN ?? "";
@@ -49,18 +50,28 @@ export default function LoginPage() {
   if (cargando) return null;
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-10 bg-background px-6 py-[calc(2rem+var(--safe-top))]">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground">Gastos Pareja</h1>
-        <p className="mt-1 text-sm text-muted">
-          Control de gastos compartidos
-        </p>
+    <main className="flex min-h-svh flex-col items-center justify-center gap-8 bg-background px-6 py-[calc(2rem+var(--safe-top))]">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Image
+          src="/icons/icon-192.png"
+          alt=""
+          width={72}
+          height={72}
+          className="rounded-[20px] shadow-md"
+          priority
+        />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Gastos Pareja</h1>
+          <p className="mt-1 text-sm text-muted">
+            Control de gastos compartidos
+          </p>
+        </div>
       </div>
 
       {!pinValidado ? (
         <form
           onSubmit={confirmarPin}
-          className="flex w-full max-w-xs flex-col items-center gap-4"
+          className="flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl bg-surface p-6 shadow-sm"
         >
           <label htmlFor="pin" className="text-sm font-medium text-muted">
             Ingresá el PIN
@@ -76,12 +87,12 @@ export default function LoginPage() {
               setPin(e.target.value.replace(/\D/g, ""));
               setErrorPin(false);
             }}
-            className="w-full rounded-2xl border border-border bg-surface px-4 py-4 text-center text-3xl font-semibold tracking-[0.4em] text-foreground outline-none focus:border-accent"
+            className="w-full rounded-2xl border border-border bg-background px-4 py-4 text-center text-3xl font-semibold tracking-[0.4em] text-foreground outline-none focus:border-accent"
             placeholder="••••"
             autoFocus
           />
           {errorPin && (
-            <p className="text-sm font-medium text-red-600">PIN incorrecto</p>
+            <p className="text-sm font-medium text-[#d03b3b]">PIN incorrecto</p>
           )}
           <button
             type="submit"
@@ -92,7 +103,7 @@ export default function LoginPage() {
           </button>
         </form>
       ) : (
-        <div className="flex w-full max-w-xs flex-col gap-4">
+        <div className="flex w-full max-w-xs flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm">
           <p className="text-center text-sm font-medium text-muted">
             ¿Quién sos?
           </p>

@@ -15,7 +15,7 @@ export default function CategoryChart({ datos }: { datos: CategoriaTotal[] }) {
   const max = datos[0].total;
 
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="flex flex-col gap-3 pr-12">
       {datos.map((d) => (
         <li key={d.categoria} className="flex items-center gap-3">
           <span className="w-6 text-lg" aria-hidden>

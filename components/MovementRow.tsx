@@ -53,18 +53,27 @@ export default function MovementRow({ movimiento }: { movimiento: Movimiento }) 
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl">
-      <div className="absolute inset-y-0 right-0 flex">
+    <div className="relative mr-20 rounded-2xl">
+      {/* Ancho ligado al arrastre (en vez de clipping con overflow-hidden):
+          así los botones no dejan ningún pixel visible en reposo, ni una
+          línea del borde redondeado del padre y su hijo transformado. */}
+      <div
+        className="absolute inset-y-0 right-0 flex overflow-hidden rounded-r-2xl"
+        style={{ width: -offset }}
+        aria-hidden={offset === 0}
+      >
         <button
           onClick={editar}
-          className="flex w-[72px] items-center justify-center bg-accent text-sm font-semibold text-white"
+          tabIndex={offset === 0 ? -1 : 0}
+          className="flex w-[72px] shrink-0 items-center justify-center bg-accent text-sm font-semibold text-white"
         >
           Editar
         </button>
         <button
           onClick={borrar}
           disabled={eliminando}
-          className="flex w-[72px] items-center justify-center bg-[#d03b3b] text-sm font-semibold text-white disabled:opacity-60"
+          tabIndex={offset === 0 ? -1 : 0}
+          className="flex w-[72px] shrink-0 items-center justify-center bg-[#d03b3b] text-sm font-semibold text-white disabled:opacity-60"
         >
           Borrar
         </button>

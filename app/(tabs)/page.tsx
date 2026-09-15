@@ -75,8 +75,8 @@ export default function DashboardPage() {
               {formatMonto(totalMes)}
             </p>
             <p className="mt-1 text-xs text-subtle">
-              Lolo: {formatMonto(reparto.pagadoLolo)} compartido · Jaz:{" "}
-              {formatMonto(reparto.pagadoJaz)} compartido
+              Compartido — Lolo: {formatMonto(reparto.pagadoLolo)} · Jaz:{" "}
+              {formatMonto(reparto.pagadoJaz)}
             </p>
           </div>
 
