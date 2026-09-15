@@ -1,15 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f9f9f7;
-  --surface: #fcfcfb;
-  --foreground: #0b0b0b;
-  --muted: #52514e;
-  --subtle: #898781;
-  --border: rgba(11, 11, 11, 0.1);
-  --accent: #2a78d6;
-  --accent-strong: #184f95;
-  --good: #0ca30c;
+  --background: #f2f4f8;
+  --surface: #ffffff;
+  --foreground: #0b0b0d;
+  --muted: #55565c;
+  --subtle: #8a8b92;
+  --border: rgba(11, 11, 13, 0.09);
+  --accent: #007aff;
+  --accent-strong: #0059c8;
+  --pink: #ff2d55;
+  --good: #34c759;
+  --danger: #ff3b30;
+
+  /* Materiales "Liquid Glass": superficies traslúcidas con blur. */
+  --glass-surface: rgba(255, 255, 255, 0.6);
+  --glass-surface-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-shadow: 0 10px 40px rgba(20, 20, 40, 0.1);
+
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -23,21 +32,30 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-pink: var(--pink);
   --color-good: var(--good);
+  --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0d0d0d;
-    --surface: #1a1a19;
+    --background: #030308;
+    --surface: #1c1c1f;
     --foreground: #ffffff;
-    --muted: #c3c2b7;
-    --subtle: #898781;
-    --border: rgba(255, 255, 255, 0.1);
-    --accent: #3987e5;
-    --accent-strong: #86b6ef;
-    --good: #0ca30c;
+    --muted: #b8b9c0;
+    --subtle: #8a8b92;
+    --border: rgba(255, 255, 255, 0.12);
+    --accent: #0a84ff;
+    --accent-strong: #6bb3ff;
+    --pink: #ff375f;
+    --good: #30d158;
+    --danger: #ff453a;
+
+    --glass-surface: rgba(28, 28, 31, 0.62);
+    --glass-surface-strong: rgba(28, 28, 31, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.14);
+    --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -55,6 +73,23 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   overscroll-behavior-y: none;
+  position: relative;
+}
+
+/* Manchas de color difuminadas fijas detrás de todo, para que las
+   superficies de vidrio tengan algo de color/luz para refractar
+   (lenguaje visual "Liquid Glass"). Puramente decorativo. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 420px at 8% -5%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%),
+    radial-gradient(520px 420px at 108% 18%, color-mix(in srgb, var(--pink) 16%, transparent), transparent 60%),
+    radial-gradient(600px 500px at 50% 115%, color-mix(in srgb, var(--good) 12%, transparent), transparent 60%);
+  filter: blur(50px) saturate(140%);
 }
 
 input,
@@ -62,6 +97,22 @@ button,
 select,
 textarea {
   font-family: inherit;
+}
+
+.glass {
+  background: var(--glass-surface);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: var(--glass-surface-strong);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 @keyframes fadeIn {

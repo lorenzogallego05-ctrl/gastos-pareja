@@ -1,5 +1,11 @@
 import { supabase } from "./supabaseClient";
-import { Ingreso, Movimiento, MovimientoInput } from "./types";
+import {
+  CategoriaRow,
+  Ingreso,
+  Movimiento,
+  MovimientoInput,
+  Presupuesto,
+} from "./types";
 
 export async function obtenerMovimientos(): Promise<Movimiento[]> {
   const { data, error } = await supabase
@@ -86,4 +92,58 @@ export async function guardarIngreso(
     .single();
   if (error) throw error;
   return data as Ingreso;
+}
+
+export async function obtenerCategorias(): Promise<CategoriaRow[]> {
+  const { data, error } = await supabase
+    .from("categorias")
+    .select("*")
+    .order("orden", { ascending: true })
+    .order("creado_en", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as CategoriaRow[];
+}
+
+export async function crearCategoria(
+  nombre: string,
+  icono: string
+): Promise<CategoriaRow> {
+  const { data, error } = await supabase
+    .from("categorias")
+    .insert({ nombre, icono, orden: 999 })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as CategoriaRow;
+}
+
+export async function obtenerPresupuestos(mes: string): Promise<Presupuesto[]> {
+  const { data, error } = await supabase
+    .from("presupuestos")
+    .select("*")
+    .eq("mes", mes);
+  if (error) throw error;
+  return (data ?? []) as Presupuesto[];
+}
+
+export async function guardarPresupuesto(
+  mes: string,
+  categoria: string,
+  monto: number
+): Promise<Presupuesto> {
+  const { data, error } = await supabase
+    .from("presupuestos")
+    .upsert(
+      { mes, categoria, monto },
+      { onConflict: "mes,categoria" }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Presupuesto;
+}
+
+export async function eliminarPresupuesto(id: string): Promise<void> {
+  const { error } = await supabase.from("presupuestos").delete().eq("id", id);
+  if (error) throw error;
 }

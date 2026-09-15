@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { useMovimientos } from "@/lib/useMovimientos";
-import { CATEGORIAS, Categoria, Persona } from "@/lib/types";
+import { useCategorias } from "@/lib/useCategorias";
+import { Categoria, Persona } from "@/lib/types";
 import { formatMonto } from "@/lib/formato";
 import MovementRow from "@/components/MovementRow";
 
 export default function HistorialPage() {
   const { movimientos, cargando } = useMovimientos();
+  const { categorias } = useCategorias();
   const [mes, setMes] = useState("");
   const [categoria, setCategoria] = useState<Categoria | "">("");
   const [pagadoPor, setPagadoPor] = useState<Persona | "">("");
@@ -31,18 +33,21 @@ export default function HistorialPage() {
   return (
     <div className="flex flex-col gap-5">
       <header className="pt-1">
-        <h1 className="text-lg font-bold text-foreground">Historial</h1>
+        <h1 className="text-[30px] leading-tight font-extrabold tracking-tight text-foreground">
+          Historial
+        </h1>
         <p className="text-sm text-subtle">
           {filtrados.length} movimiento{filtrados.length === 1 ? "" : "s"} ·{" "}
           {formatMonto(total)}
         </p>
       </header>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="glass grid grid-cols-3 divide-x divide-border rounded-2xl p-1">
+
         <select
           value={mes}
           onChange={(e) => setMes(e.target.value)}
-          className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
+          className="min-h-[40px] rounded-xl bg-transparent px-1 text-sm text-foreground outline-none"
         >
           <option value="">Mes</option>
           {meses.map((m) => (
@@ -55,12 +60,12 @@ export default function HistorialPage() {
         <select
           value={categoria}
           onChange={(e) => setCategoria(e.target.value as Categoria | "")}
-          className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
+          className="min-h-[40px] rounded-xl bg-transparent px-1 text-sm text-foreground outline-none"
         >
           <option value="">Categoría</option>
-          {CATEGORIAS.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {categorias.map((c) => (
+            <option key={c.id} value={c.nombre}>
+              {c.nombre}
             </option>
           ))}
         </select>
@@ -68,7 +73,7 @@ export default function HistorialPage() {
         <select
           value={pagadoPor}
           onChange={(e) => setPagadoPor(e.target.value as Persona | "")}
-          className="min-h-[44px] rounded-xl border border-border bg-surface px-2 text-sm text-foreground outline-none"
+          className="min-h-[40px] rounded-xl bg-transparent px-1 text-sm text-foreground outline-none"
         >
           <option value="">Quién</option>
           <option value="Lolo">Lolo</option>
@@ -86,7 +91,7 @@ export default function HistorialPage() {
         <ul className="flex flex-col gap-2">
           {filtrados.map((m) => (
             <li key={m.id}>
-              <MovementRow movimiento={m} />
+              <MovementRow movimiento={m} categorias={categorias} />
             </li>
           ))}
         </ul>

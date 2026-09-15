@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useIngreso } from "@/lib/useIngreso";
-import { calcularReparto, totalGastadoMes, totalesPorCategoria } from "@/lib/calculos";
+import { useCategorias } from "@/lib/useCategorias";
+import { usePresupuestos } from "@/lib/usePresupuestos";
+import {
+  calcularMisGastos,
+  calcularReparto,
+  mapaPresupuestos,
+  totalGastadoMes,
+  totalesPorCategoria,
+} from "@/lib/calculos";
 import { formatMes, formatMonto, mesActual } from "@/lib/formato";
 import DebtCard from "@/components/DebtCard";
 import CategoryChart from "@/components/CategoryChart";
@@ -17,6 +25,8 @@ export default function DashboardPage() {
   const mes = mesActual();
   const { movimientos, cargando, error } = useMovimientos();
   const { ingreso } = useIngreso(mes);
+  const { categorias } = useCategorias();
+  const { presupuestos } = usePresupuestos(mes);
 
   const movimientosMes = useMemo(
     () => movimientos.filter((m) => m.fecha.startsWith(mes)),
@@ -29,9 +39,14 @@ export default function DashboardPage() {
   );
 
   const totalMes = useMemo(() => totalGastadoMes(movimientosMes), [movimientosMes]);
-  const categorias = useMemo(
+  const categoriaTotales = useMemo(
     () => totalesPorCategoria(movimientosMes),
     [movimientosMes]
+  );
+  const presupuestosMapa = useMemo(() => mapaPresupuestos(presupuestos), [presupuestos]);
+  const misGastos = useMemo(
+    () => (usuario ? calcularMisGastos(movimientosMes, reparto, usuario) : null),
+    [movimientosMes, reparto, usuario]
   );
   const ultimos = movimientos.slice(0, 10);
 
@@ -42,17 +57,19 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between pt-1">
-        <div>
-          <p className="text-xs text-subtle">Hola, {usuario} 👋</p>
-          <h1 className="text-lg font-bold text-foreground">{formatMes(mes)}</h1>
+      <header className="flex flex-col gap-1 pt-1">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-subtle">Hola, {usuario} 👋</p>
+          <button
+            onClick={cambiarUsuario}
+            className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
+          >
+            Cambiar
+          </button>
         </div>
-        <button
-          onClick={cambiarUsuario}
-          className="min-h-[44px] rounded-full border border-border px-3 text-sm font-medium text-muted active:opacity-70"
-        >
-          Cambiar
-        </button>
+        <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-foreground">
+          {formatMes(mes)}
+        </h1>
       </header>
 
       {cargando ? (
@@ -60,14 +77,14 @@ export default function DashboardPage() {
       ) : (
         <>
           {error && (
-            <p className="rounded-2xl bg-[#d03b3b]/10 px-4 py-3 text-sm font-medium text-[#d03b3b]">
+            <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
               {error}
             </p>
           )}
 
           <DebtCard reparto={reparto} />
 
-          <div className="rounded-3xl bg-surface p-5 shadow-sm">
+          <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">
               Total gastado este mes
             </p>
@@ -80,14 +97,50 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl bg-surface p-5 shadow-sm">
+          {misGastos && (
+            <div className="glass rounded-[28px] p-5">
+              <h2 className="mb-3 text-base font-semibold text-foreground">
+                Mis gastos ({usuario})
+              </h2>
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Personales (no divididos)</span>
+                  <span className="font-semibold text-foreground">
+                    {formatMonto(misGastos.personal)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Tu parte de lo compartido</span>
+                  <span className="font-semibold text-foreground">
+                    {formatMonto(misGastos.miParteCompartido)}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
+                  <span className="font-medium text-foreground">Total tuyo</span>
+                  <span className="text-lg font-extrabold text-accent">
+                    {formatMonto(misGastos.total)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="glass rounded-[28px] p-5">
             <h2 className="mb-3 text-base font-semibold text-foreground">
               Gasto por categoría
             </h2>
-            <CategoryChart datos={categorias} />
+            <CategoryChart
+              datos={categoriaTotales}
+              categorias={categorias}
+              presupuestos={presupuestosMapa}
+            />
           </div>
 
-          <MovementList movimientos={ultimos} verTodosHref="/historial" />
+          <MovementList
+            movimientos={ultimos}
+            categorias={categorias}
+            verTodosHref="/historial"
+          />
         </>
       )}
     </div>

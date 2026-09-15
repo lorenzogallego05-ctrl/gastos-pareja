@@ -1,5 +1,5 @@
 import { formatMonto } from "./formato";
-import { Ingreso, Movimiento, Persona } from "./types";
+import { Ingreso, Movimiento, Persona, Presupuesto } from "./types";
 
 export interface Reparto {
   pctLolo: number;
@@ -93,4 +93,33 @@ export function totalesPorCategoria(movimientos: Movimiento[]): CategoriaTotal[]
       porcentaje: total > 0 ? monto / total : 0,
     }))
     .sort((a, b) => b.total - a.total);
+}
+
+export interface MisGastos {
+  personal: number;
+  miParteCompartido: number;
+  total: number;
+}
+
+// Lo que gastó realmente cada uno: lo personal (no compartido) que pagó,
+// más su parte proporcional de lo compartido (según calcularReparto).
+export function calcularMisGastos(
+  movimientos: Movimiento[],
+  reparto: Reparto,
+  usuario: Persona
+): MisGastos {
+  const personal = movimientos
+    .filter((m) => !m.compartido && m.pagado_por === usuario)
+    .reduce((sum, m) => sum + m.monto, 0);
+  const miParteCompartido =
+    usuario === "Lolo" ? reparto.leCorrespondeLolo : reparto.leCorrespondeJaz;
+  return { personal, miParteCompartido, total: personal + miParteCompartido };
+}
+
+export function mapaPresupuestos(
+  presupuestos: Presupuesto[]
+): Record<string, number> {
+  const mapa: Record<string, number> = {};
+  for (const p of presupuestos) mapa[p.categoria] = p.monto;
+  return mapa;
 }

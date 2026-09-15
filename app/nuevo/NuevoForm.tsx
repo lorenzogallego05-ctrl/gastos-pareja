@@ -105,7 +105,7 @@ export default function NuevoForm() {
         >
           ✕
         </button>
-        <h1 className="text-base font-semibold text-foreground">
+        <h1 className="text-lg font-bold text-foreground">
           {idEditar ? "Editar gasto" : "Nuevo gasto"}
         </h1>
         <div className="min-w-[44px]" />
@@ -116,7 +116,7 @@ export default function NuevoForm() {
           <label className="mb-1 block text-sm font-medium text-muted">
             Monto
           </label>
-          <div className="flex items-center rounded-2xl border border-border bg-surface px-4">
+          <div className="glass flex items-center rounded-2xl px-4">
             <span className="text-2xl font-bold text-subtle">$</span>
             <input
               type="text"
@@ -139,7 +139,7 @@ export default function NuevoForm() {
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
             placeholder="Ej: Verdulería"
-            className="min-h-[44px] w-full rounded-2xl border border-border bg-surface px-4 py-3 text-base text-foreground outline-none focus:border-accent"
+            className="glass min-h-[44px] w-full rounded-2xl px-4 py-3 text-base text-foreground outline-none focus:border-accent"
           />
         </div>
 
@@ -158,10 +158,10 @@ export default function NuevoForm() {
             <button
               type="button"
               onClick={() => setPagadoPor("Lolo")}
-              className={`min-h-[52px] rounded-2xl text-base font-bold ${
+              className={`min-h-[52px] rounded-full text-base font-bold transition-colors ${
                 pagadoPor === "Lolo"
-                  ? "bg-accent text-white"
-                  : "border border-border bg-surface text-muted"
+                  ? "bg-accent text-white shadow-sm"
+                  : "glass text-muted"
               }`}
             >
               Lolo
@@ -169,10 +169,10 @@ export default function NuevoForm() {
             <button
               type="button"
               onClick={() => setPagadoPor("Jaz")}
-              className={`min-h-[52px] rounded-2xl text-base font-bold ${
+              className={`min-h-[52px] rounded-full text-base font-bold transition-colors ${
                 pagadoPor === "Jaz"
-                  ? "bg-[#e87ba4] text-white"
-                  : "border border-border bg-surface text-muted"
+                  ? "bg-pink text-white shadow-sm"
+                  : "glass text-muted"
               }`}
             >
               Jaz
@@ -180,7 +180,7 @@ export default function NuevoForm() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-surface px-4 py-3">
+        <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
           <span className="text-base font-medium text-foreground">
             Gasto compartido
           </span>
@@ -202,14 +202,14 @@ export default function NuevoForm() {
         </div>
 
         {errorMsg && (
-          <p className="text-sm font-medium text-[#d03b3b]">{errorMsg}</p>
+          <p className="text-sm font-medium text-danger">{errorMsg}</p>
         )}
 
         <div className="mt-auto pt-2">
           <button
             type="submit"
             disabled={guardando}
-            className="min-h-[52px] w-full rounded-2xl bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
+            className="min-h-[52px] w-full rounded-full bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
           >
             {guardando ? "Guardando..." : "Guardar"}
           </button>

@@ -27,6 +27,21 @@ Para cada mes:
 
 Esta lógica vive en `lib/calculos.ts`.
 
+## Funcionalidad
+
+- **Dashboard**: balance del mes, total gastado, "Mis gastos" (lo personal
+  de quien está usando el teléfono + su parte proporcional de lo
+  compartido) y gasto por categoría.
+- **Categorías dinámicas**: además de las 12 categorías iniciales, se
+  pueden agregar categorías nuevas (con ícono) desde el mismo formulario
+  de carga, tocando "+ Nueva". Quedan disponibles al instante para los dos
+  celulares.
+- **Presupuestos**: en la pestaña "Finanzas" → "Presupuestos" se puede
+  definir un límite mensual por categoría. Si el gasto real lo supera, la
+  barra se pone en rojo (en esa pantalla y en el dashboard).
+- **Historial** filtrable por mes, categoría y quién pagó, con swipe para
+  editar o borrar cada movimiento.
+
 ---
 
 ## 1. Crear el proyecto en Supabase
@@ -45,9 +60,17 @@ Esta lógica vive en `lib/calculos.ts`.
    - Las políticas de Row Level Security (RLS) necesarias.
    - El alta de ambas tablas en la publicación `supabase_realtime`, para
      que los cambios se transmitan en vivo a los dos celulares.
-5. Si en algún momento agregás más migraciones, se van a guardar en la
+5. Repetí el paso anterior con
+   [`supabase/migrations/0002_categorias_y_presupuestos.sql`](./supabase/migrations/0002_categorias_y_presupuestos.sql)
+   (en una query nueva, **después** de la 0001). Esto agrega:
+   - Una tabla `categorias` (reemplaza el enum fijo: se puede agregar
+     categorías nuevas desde la app) con las 12 categorías originales ya
+     cargadas.
+   - Una tabla `presupuestos` (límite mensual opcional por categoría).
+   - Las políticas de RLS y el alta en `supabase_realtime` para ambas.
+6. Si en algún momento agregás más migraciones, se van a guardar en la
    misma carpeta `supabase/migrations/` con el prefijo numérico siguiente
-   (`0002_...`, `0003_...`).
+   (`0003_...`, `0004_...`), y se corren en orden, una por una.
 
 ### Sobre la seguridad (RLS)
 
@@ -156,7 +179,7 @@ app/
   (tabs)/             → pantallas con navegación inferior
     page.tsx           → dashboard
     historial/         → historial con filtros
-    ingresos/          → carga de ingresos mensuales
+    ingresos/          → Finanzas: ingresos (% de reparto) y presupuestos
   nuevo/               → formulario de carga rápida (alta y edición)
   manifest.ts          → manifest de la PWA
 components/            → componentes de UI reutilizables

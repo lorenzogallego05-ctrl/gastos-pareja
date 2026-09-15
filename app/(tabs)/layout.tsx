@@ -12,7 +12,7 @@ export default function TabsLayout({
       <div className="flex min-h-svh flex-col">
         <div
           className="flex-1 px-4 pt-[calc(1.25rem+var(--safe-top))]"
-          style={{ paddingBottom: "calc(6rem + var(--safe-bottom))" }}
+          style={{ paddingBottom: "calc(6.5rem + var(--safe-bottom))" }}
         >
           {children}
         </div>

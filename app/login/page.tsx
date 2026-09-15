@@ -50,7 +50,7 @@ export default function LoginPage() {
   if (cargando) return null;
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-8 bg-background px-6 py-[calc(2rem+var(--safe-top))]">
+    <main className="flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-[calc(2rem+var(--safe-top))]">
       <div className="flex flex-col items-center gap-3 text-center">
         <Image
           src="/icons/icon-192.png"
@@ -71,7 +71,7 @@ export default function LoginPage() {
       {!pinValidado ? (
         <form
           onSubmit={confirmarPin}
-          className="flex w-full max-w-xs flex-col items-center gap-4 rounded-3xl bg-surface p-6 shadow-sm"
+          className="glass flex w-full max-w-xs flex-col items-center gap-4 rounded-[32px] p-6"
         >
           <label htmlFor="pin" className="text-sm font-medium text-muted">
             Ingresá el PIN
@@ -92,30 +92,30 @@ export default function LoginPage() {
             autoFocus
           />
           {errorPin && (
-            <p className="text-sm font-medium text-[#d03b3b]">PIN incorrecto</p>
+            <p className="text-sm font-medium text-danger">PIN incorrecto</p>
           )}
           <button
             type="submit"
             disabled={pin.length === 0}
-            className="min-h-[44px] w-full rounded-2xl bg-accent px-4 py-3 text-base font-semibold text-white active:opacity-80 disabled:opacity-40"
+            className="min-h-[44px] w-full rounded-full bg-accent px-4 py-3 text-base font-semibold text-white shadow-sm active:opacity-80 disabled:opacity-40"
           >
             Continuar
           </button>
         </form>
       ) : (
-        <div className="flex w-full max-w-xs flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm">
+        <div className="glass flex w-full max-w-xs flex-col gap-4 rounded-[32px] p-6">
           <p className="text-center text-sm font-medium text-muted">
             ¿Quién sos?
           </p>
           <button
             onClick={() => seleccionar("Lolo")}
-            className="min-h-[64px] w-full rounded-2xl bg-accent text-xl font-bold text-white shadow-sm active:opacity-80"
+            className="min-h-[64px] w-full rounded-full bg-accent text-xl font-bold text-white shadow-sm active:opacity-80"
           >
             Lolo
           </button>
           <button
             onClick={() => seleccionar("Jaz")}
-            className="min-h-[64px] w-full rounded-2xl bg-[#e87ba4] text-xl font-bold text-white shadow-sm active:opacity-80"
+            className="min-h-[64px] w-full rounded-full bg-pink text-xl font-bold text-white shadow-sm active:opacity-80"
           >
             Jaz
           </button>

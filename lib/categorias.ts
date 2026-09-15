@@ -1,16 +1,35 @@
-import { Categoria } from "./types";
+import { CategoriaRow } from "./types";
 
-export const ICONO_CATEGORIA: Record<Categoria, string> = {
-  Vivienda: "🏠",
-  Supermercado: "🛒",
-  "Comida afuera": "🍽️",
-  Transporte: "🚗",
-  Servicios: "💡",
-  Salud: "🩺",
-  Ocio: "🎉",
-  Ropa: "👕",
-  Educación: "📚",
-  Mascotas: "🐾",
-  Regalos: "🎁",
-  Otros: "📦",
-};
+// Ícono por defecto si una categoría no se encuentra (no debería pasar).
+export const ICONO_POR_DEFECTO = "📦";
+
+export function iconoDeCategoria(
+  categorias: CategoriaRow[],
+  nombre: string
+): string {
+  return categorias.find((c) => c.nombre === nombre)?.icono ?? ICONO_POR_DEFECTO;
+}
+
+// Paleta acotada para elegir ícono al crear una categoría nueva.
+export const EMOJIS_CATEGORIA = [
+  "📦",
+  "🏠",
+  "🛒",
+  "🍽️",
+  "🚗",
+  "💡",
+  "🩺",
+  "🎉",
+  "👕",
+  "📚",
+  "🐾",
+  "🎁",
+  "💻",
+  "✈️",
+  "🏋️",
+  "🎵",
+  "📱",
+  "🔧",
+  "☕",
+  "🍺",
+];

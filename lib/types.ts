@@ -2,22 +2,17 @@ export type Persona = "Lolo" | "Jaz";
 
 export const PERSONAS: Persona[] = ["Lolo", "Jaz"];
 
-export const CATEGORIAS = [
-  "Vivienda",
-  "Supermercado",
-  "Comida afuera",
-  "Transporte",
-  "Servicios",
-  "Salud",
-  "Ocio",
-  "Ropa",
-  "Educación",
-  "Mascotas",
-  "Regalos",
-  "Otros",
-] as const;
+// Las categorías son dinámicas (tabla "categorias" en Supabase): cualquiera
+// de los dos puede agregar categorías nuevas desde la app. Ver useCategorias.
+export type Categoria = string;
 
-export type Categoria = (typeof CATEGORIAS)[number];
+export interface CategoriaRow {
+  id: string;
+  nombre: string;
+  icono: string;
+  orden: number;
+  creado_en: string;
+}
 
 export interface Movimiento {
   id: string;
@@ -38,4 +33,11 @@ export interface Ingreso {
   mes: string;
   ingreso_lolo: number;
   ingreso_jaz: number;
+}
+
+export interface Presupuesto {
+  id: string;
+  mes: string;
+  categoria: Categoria;
+  monto: number;
 }
