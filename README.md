@@ -1,29 +1,46 @@
 # Gastos Pareja
 
-App (PWA) para llevar el control de gastos compartidos entre pareja, con
-reparto **proporcional a los ingresos** de cada uno (no 50/50). Pensada para
-usarse casi exclusivamente desde el celular, instalada como ícono en la
-pantalla de inicio de dos iPhones, con sincronización en tiempo real entre
-ambos.
+App (PWA) para llevar el control de gastos compartidos entre pareja (o de
+una sola persona), con reparto **proporcional a los ingresos** de cada uno
+(no 50/50). Cada usuario crea su cuenta real (email + contraseña) y
+pertenece a un **hogar** propio y privado: sus datos nunca se mezclan con
+los de otro hogar. Pensada para usarse casi exclusivamente desde el
+celular, instalada como ícono en la pantalla de inicio del iPhone, con
+sincronización en tiempo real entre los integrantes de un mismo hogar.
 
 ## Stack
 
 - **Frontend**: Next.js (App Router) + React + Tailwind CSS.
-- **Backend**: Supabase (Postgres + API + Realtime).
+- **Backend**: Supabase (Postgres + Auth + Realtime).
 - **Deploy**: Vercel.
 - **PWA**: `app/manifest.ts` + service worker (`public/sw.js`) para
   instalarse desde Safari y funcionar a pantalla completa.
 
+## Hogares y cuentas
+
+- Al registrarte (email + contraseña) armás tu **hogar**: elegís si vas a
+  usar la app solo/a (capacidad 1) o para compartir con alguien más
+  (capacidad 2, por ahora el máximo).
+- Si elegiste compartir, la app te da un **código de invitación** (ej.
+  `K7QM-3XPZ`). Se lo pasás a esa persona y ella lo usa en "Unirme con un
+  código" para sumarse a tu mismo hogar.
+- Cada hogar es completamente independiente: sus movimientos, ingresos,
+  categorías y presupuestos no se comparten ni se ven desde otro hogar
+  (reforzado con Row Level Security en la base de datos, no es solo un
+  filtro de la interfaz).
+
 ## Cómo funciona el reparto
 
-Para cada mes:
+Para cada mes, y por cada persona del hogar:
 
-1. `% de aporte de cada uno = su ingreso / (ingreso_lolo + ingreso_jaz)`
+1. `% de aporte = su ingreso / (suma de los ingresos de todo el hogar)`
 2. `Total compartido del mes = suma de movimientos con compartido = true`
-3. `Le corresponde pagar = total compartido × su % de ingreso`
+3. `Le corresponde pagar = total compartido × su % de aporte`
 4. `Diferencia = lo que pagó realmente - lo que le correspondía`
-5. Si la diferencia de Lolo es positiva, **Jaz le debe** esa plata a Lolo (y
-   viceversa). Si ambas diferencias son ~0, "Están al día".
+5. Si hay dos personas y una tiene diferencia positiva, la otra **le
+   debe** esa plata. Si ambas diferencias son ~0, "Están al día". Con una
+   sola persona en el hogar no hay reparto ni deuda: solo se llevan sus
+   propios gastos.
 
 Esta lógica vive en `lib/calculos.ts`.
 
@@ -42,15 +59,15 @@ Esta lógica vive en `lib/calculos.ts`.
 - **Historial** filtrable por mes, categoría y quién pagó. Tocar un
   movimiento lo abre para editarlo; el ícono 🗑️ lo borra.
 - **Privacidad entre los dos**: los gastos marcados como personales (no
-  compartidos) solo los ve quien los cargó — el otro no los ve en ninguna
-  pantalla (dashboard, historial, gráfico por categoría), aunque sí se
-  siguen sumando a los totales que corresponden a cada uno en "Mis
-  gastos". Importante: esto es una privacidad "de uso normal" pensada para
-  que cada uno no vea los gastos personales del otro navegando la app —
-  no reemplaza un login real, ya que no hay contraseñas ni autenticación
-  de por medio (ver más abajo).
+  compartidos) solo los ve quien los cargó — el otro integrante del hogar
+  no los ve en ninguna pantalla (dashboard, historial, gráfico por
+  categoría), aunque sí se siguen sumando a los totales que corresponden a
+  cada uno en "Mis gastos". Esto está reforzado a nivel de base de datos
+  (RLS): las filas de gastos personales del otro ni siquiera llegan al
+  celular.
 - **Configuración**: selector de tema Claro / Oscuro / Automático (se
-  guarda en el propio dispositivo) y acceso para cambiar de usuario.
+  guarda en el propio dispositivo), datos de tu hogar (integrantes, código
+  de invitación) y cierre de sesión.
 
 ---
 
@@ -64,12 +81,8 @@ Esta lógica vive en `lib/calculos.ts`.
 3. Andá a **SQL Editor** (ícono de la izquierda) → **New query**.
 4. Copiá y pegá todo el contenido del archivo
    [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql)
-   de este repo y hacé click en **Run**. Esto crea:
-   - Las tablas `movimientos` e `ingresos`.
-   - Los tipos `categoria_enum` y `persona_enum`.
-   - Las políticas de Row Level Security (RLS) necesarias.
-   - El alta de ambas tablas en la publicación `supabase_realtime`, para
-     que los cambios se transmitan en vivo a los dos celulares.
+   de este repo y hacé click en **Run**. Esto crea las tablas base
+   (`movimientos`, `ingresos`) y las políticas de RLS iniciales.
 5. Repetí el paso anterior con
    [`supabase/migrations/0002_categorias_y_presupuestos.sql`](./supabase/migrations/0002_categorias_y_presupuestos.sql)
    (en una query nueva, **después** de la 0001). Esto agrega:
@@ -77,21 +90,37 @@ Esta lógica vive en `lib/calculos.ts`.
      categorías nuevas desde la app) con las 12 categorías originales ya
      cargadas.
    - Una tabla `presupuestos` (límite mensual opcional por categoría).
-   - Las políticas de RLS y el alta en `supabase_realtime` para ambas.
-6. Si en algún momento agregás más migraciones, se van a guardar en la
+6. Repetí el paso una vez más con
+   [`supabase/migrations/0003_hogares_y_cuentas_reales.sql`](./supabase/migrations/0003_hogares_y_cuentas_reales.sql)
+   (en una query nueva, **después** de la 0002). Esto agrega el modelo de
+   cuentas reales:
+   - Tablas `hogares` y `perfiles` (una fila de `perfiles` por cada cuenta
+     de Supabase Auth, ligada a un hogar).
+   - Las funciones `crear_hogar` / `unirse_a_hogar`, únicas formas de
+     crear un hogar o sumarte a uno (validan el código de invitación
+     server-side, nunca queda expuesto).
+   - `hogar_id` en `movimientos` / `categorias` / `presupuestos`, y
+     `ingresos` pasa a ser una fila por persona y por mes.
+   - Las políticas de RLS que aíslan cada hogar del resto y ocultan los
+     gastos personales del otro integrante.
+   - El alta de las tablas nuevas en `supabase_realtime`.
+7. En **Authentication** → **Providers**, confirmá que **Email** esté
+   habilitado (viene así por defecto). Dejá la confirmación por email
+   activada: cuando alguien se registra, Supabase le manda un link antes
+   de poder iniciar sesión.
+8. Si en algún momento agregás más migraciones, se van a guardar en la
    misma carpeta `supabase/migrations/` con el prefijo numérico siguiente
-   (`0003_...`, `0004_...`), y se corren en orden, una por una.
+   (`0004_...`), y se corren en orden, una por una.
 
-### Sobre la seguridad (RLS)
+### Sobre la seguridad (RLS + Auth)
 
-Esta app **no usa el sistema de autenticación de Supabase** (no hace falta
-un login "de verdad" para una app privada de dos personas). Las políticas
-de RLS de la migración permiten leer/escribir a cualquiera que tenga la
-`anon key` del proyecto. Por eso:
-
-- No compartas ni publiques la URL/clave de tu proyecto de Supabase.
-- El PIN opcional de la app (ver más abajo) es solo una traba liviana
-  dentro de la interfaz, no un mecanismo de seguridad de la base de datos.
+Esta app usa el sistema de autenticación real de Supabase (email +
+contraseña). El acceso a los datos no depende de la `anon key` sino de
+quién esté logueado: las políticas de RLS de la migración `0003` hacen que
+cada fila solo se pueda leer o escribir si pertenecés al hogar dueño de esa
+fila, y los gastos personales del otro integrante ni siquiera se pueden
+leer aunque estés en el mismo hogar. Igual que con cualquier proyecto de
+Supabase, no compartas ni publiques la URL/clave de tu proyecto.
 
 ### Obtener las API keys
 
@@ -116,10 +145,6 @@ Editá `.env.local` con los valores de tu proyecto de Supabase:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-anon-public
-
-# Opcional: PIN de 4 dígitos que la app pide antes de elegir usuario.
-# Dejalo vacío para no pedir PIN.
-NEXT_PUBLIC_APP_PIN=1234
 ```
 
 Corré el proyecto en modo desarrollo:
@@ -128,9 +153,10 @@ Corré el proyecto en modo desarrollo:
 npm run dev
 ```
 
-Abrí [http://localhost:3000](http://localhost:3000). Vas a ver el selector
-de usuario (Lolo / Jaz) y, si configuraste `NEXT_PUBLIC_APP_PIN`, primero
-te va a pedir el PIN.
+Abrí [http://localhost:3000](http://localhost:3000). Vas a ver la pantalla
+de inicio de sesión; tocá "Registrate" para crear tu cuenta, confirmá el
+email que te llega, iniciá sesión y elegí si tu hogar es solo tuyo o para
+compartir.
 
 ---
 
@@ -139,16 +165,16 @@ te va a pedir el PIN.
 1. Subí el repo a GitHub (si todavía no lo hiciste).
 2. Entrá a [vercel.com](https://vercel.com) → **Add New** → **Project** →
    importá el repositorio de GitHub.
-3. En **Environment Variables**, agregá las mismas tres variables del
-   `.env.local`:
+3. En **Environment Variables**, agregá las mismas dos variables del
+   `.env.local` (como tipo **Config**, no Secret, ya que son
+   `NEXT_PUBLIC_*` y el navegador las necesita):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `NEXT_PUBLIC_APP_PIN` (opcional)
 4. Hacé click en **Deploy**. Vercel detecta automáticamente que es un
    proyecto Next.js.
 5. Una vez desplegado, vas a tener una URL tipo
-   `https://gastos-pareja.vercel.app`. Esa es la URL que van a abrir Lolo
-   y Jaz desde sus iPhones.
+   `https://gastos-pareja.vercel.app`. Esa es la URL que van a abrir todos
+   los que se registren, cada uno desde su iPhone.
 
 Cada vez que hagas push a la rama principal, Vercel vuelve a desplegar
 automáticamente.
@@ -185,11 +211,14 @@ cortó), la app también refresca los datos cada 20 segundos.
 
 ```
 app/
-  login/              → selector de usuario + PIN opcional
+  login/              → iniciar sesión (email + contraseña)
+  registro/           → crear cuenta
+  onboarding/         → crear hogar (solo/compartido) o unirse con código
   (tabs)/             → pantallas con navegación inferior
     page.tsx           → dashboard
     historial/         → historial con filtros
     ingresos/          → Finanzas: ingresos (% de reparto) y presupuestos
+    configuracion/      → tema, datos del hogar, cerrar sesión
   nuevo/               → formulario de carga rápida (alta y edición)
   manifest.ts          → manifest de la PWA
 components/            → componentes de UI reutilizables

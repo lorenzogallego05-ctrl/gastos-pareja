@@ -1,20 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { obtenerIngreso } from "./api";
+import { obtenerIngresosMes } from "./api";
 import { supabase } from "./supabaseClient";
 import { Ingreso } from "./types";
 
 const POLLING_MS = 20000;
 
-export function useIngreso(mes: string) {
-  const [ingreso, setIngreso] = useState<Ingreso | null>(null);
+export function useIngresosMes(mes: string) {
+  const [ingresos, setIngresos] = useState<Ingreso[]>([]);
   const [cargando, setCargando] = useState(true);
 
   const recargar = useCallback(async () => {
     try {
-      const data = await obtenerIngreso(mes);
-      setIngreso(data);
+      const data = await obtenerIngresosMes(mes);
+      setIngresos(data);
     } finally {
       setCargando(false);
     }
@@ -36,13 +36,7 @@ export function useIngreso(mes: string) {
           table: "ingresos",
           filter: `mes=eq.${mes}`,
         },
-        (payload) => {
-          if (payload.eventType === "DELETE") {
-            setIngreso(null);
-          } else {
-            setIngreso(payload.new as Ingreso);
-          }
-        }
+        () => recargar()
       )
       .subscribe();
 
@@ -54,5 +48,5 @@ export function useIngreso(mes: string) {
     };
   }, [mes, recargar]);
 
-  return { ingreso, cargando, recargar };
+  return { ingresos, cargando, recargar };
 }

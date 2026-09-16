@@ -1,11 +1,89 @@
 import { supabase } from "./supabaseClient";
 import {
   CategoriaRow,
+  Hogar,
   Ingreso,
   Movimiento,
   MovimientoInput,
+  Perfil,
   Presupuesto,
 } from "./types";
+
+// ── Auth ──────────────────────────────────────────────────────────────
+
+export async function registrarse(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+export async function iniciarSesion(email: string, password: string) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function cerrarSesion() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}
+
+// ── Hogar / perfil ──────────────────────────────────────────────────────
+
+export async function obtenerMiPerfil(userId: string): Promise<Perfil | null> {
+  const { data, error } = await supabase
+    .from("perfiles")
+    .select("*")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Perfil | null;
+}
+
+export async function obtenerPerfilesDeMiHogar(): Promise<Perfil[]> {
+  const { data, error } = await supabase
+    .from("perfiles")
+    .select("*")
+    .order("creado_en", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Perfil[];
+}
+
+export async function obtenerMiHogar(): Promise<Hogar | null> {
+  const { data, error } = await supabase.from("hogares").select("*").maybeSingle();
+  if (error) throw error;
+  return data as Hogar | null;
+}
+
+export async function crearHogar(
+  nombre: string,
+  capacidad: 1 | 2,
+  nombreHogar?: string
+): Promise<{ hogar_id: string; codigo: string }> {
+  const { data, error } = await supabase
+    .rpc("crear_hogar", {
+      p_nombre: nombre,
+      p_capacidad: capacidad,
+      p_nombre_hogar: nombreHogar ?? null,
+    })
+    .single();
+  if (error) throw error;
+  return data as { hogar_id: string; codigo: string };
+}
+
+export async function unirseAHogar(codigo: string, nombre: string): Promise<string> {
+  const { data, error } = await supabase.rpc("unirse_a_hogar", {
+    p_codigo: codigo,
+    p_nombre: nombre,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+// ── Movimientos ──────────────────────────────────────────────────────────
 
 export async function obtenerMovimientos(): Promise<Movimiento[]> {
   const { data, error } = await supabase
@@ -58,41 +136,36 @@ export async function eliminarMovimiento(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function obtenerIngreso(mes: string): Promise<Ingreso | null> {
-  const { data, error } = await supabase
-    .from("ingresos")
-    .select("*")
-    .eq("mes", mes)
-    .maybeSingle();
-  if (error) throw error;
-  return data as Ingreso | null;
-}
+// ── Ingresos (una fila por persona por mes) ──────────────────────────────
 
-export async function obtenerIngresos(): Promise<Ingreso[]> {
+export async function obtenerIngresosMes(mes: string): Promise<Ingreso[]> {
   const { data, error } = await supabase
     .from("ingresos")
     .select("*")
-    .order("mes", { ascending: false });
+    .eq("mes", mes);
   if (error) throw error;
   return (data ?? []) as Ingreso[];
 }
 
 export async function guardarIngreso(
+  hogarId: string,
   mes: string,
-  ingresoLolo: number,
-  ingresoJaz: number
+  perfilId: string,
+  monto: number
 ): Promise<Ingreso> {
   const { data, error } = await supabase
     .from("ingresos")
     .upsert(
-      { mes, ingreso_lolo: ingresoLolo, ingreso_jaz: ingresoJaz },
-      { onConflict: "mes" }
+      { hogar_id: hogarId, mes, perfil_id: perfilId, monto },
+      { onConflict: "hogar_id,mes,perfil_id" }
     )
     .select()
     .single();
   if (error) throw error;
   return data as Ingreso;
 }
+
+// ── Categorías ────────────────────────────────────────────────────────────
 
 export async function obtenerCategorias(): Promise<CategoriaRow[]> {
   const { data, error } = await supabase
@@ -105,17 +178,20 @@ export async function obtenerCategorias(): Promise<CategoriaRow[]> {
 }
 
 export async function crearCategoria(
+  hogarId: string,
   nombre: string,
   icono: string
 ): Promise<CategoriaRow> {
   const { data, error } = await supabase
     .from("categorias")
-    .insert({ nombre, icono, orden: 999 })
+    .insert({ hogar_id: hogarId, nombre, icono, orden: 999 })
     .select()
     .single();
   if (error) throw error;
   return data as CategoriaRow;
 }
+
+// ── Presupuestos ──────────────────────────────────────────────────────────
 
 export async function obtenerPresupuestos(mes: string): Promise<Presupuesto[]> {
   const { data, error } = await supabase
@@ -127,6 +203,7 @@ export async function obtenerPresupuestos(mes: string): Promise<Presupuesto[]> {
 }
 
 export async function guardarPresupuesto(
+  hogarId: string,
   mes: string,
   categoria: string,
   monto: number
@@ -134,8 +211,8 @@ export async function guardarPresupuesto(
   const { data, error } = await supabase
     .from("presupuestos")
     .upsert(
-      { mes, categoria, monto },
-      { onConflict: "mes,categoria" }
+      { hogar_id: hogarId, mes, categoria, monto },
+      { onConflict: "hogar_id,mes,categoria" }
     )
     .select()
     .single();

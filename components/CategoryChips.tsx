@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCategorias } from "@/lib/useCategorias";
+import { useAuth } from "@/lib/useAuth";
 import { crearCategoria } from "@/lib/api";
 import { EMOJIS_CATEGORIA } from "@/lib/categorias";
 import { Categoria } from "@/lib/types";
@@ -15,6 +16,7 @@ export default function CategoryChips({
   onChange: (categoria: Categoria) => void;
 }) {
   const { categorias, cargando } = useCategorias();
+  const { hogar } = useAuth();
   const { mostrarToast } = useToast();
   const [agregando, setAgregando] = useState(false);
   const [nombreNuevo, setNombreNuevo] = useState("");
@@ -23,7 +25,7 @@ export default function CategoryChips({
 
   async function crear() {
     const nombre = nombreNuevo.trim();
-    if (!nombre) return;
+    if (!nombre || !hogar) return;
     if (categorias.some((c) => c.nombre.toLowerCase() === nombre.toLowerCase())) {
       onChange(nombre);
       setAgregando(false);
@@ -32,7 +34,7 @@ export default function CategoryChips({
     }
     setGuardando(true);
     try {
-      const nueva = await crearCategoria(nombre, iconoNuevo);
+      const nueva = await crearCategoria(hogar.id, nombre, iconoNuevo);
       onChange(nueva.nombre);
       mostrarToast("Categoría creada");
       setAgregando(false);

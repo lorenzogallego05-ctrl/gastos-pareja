@@ -9,10 +9,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl ?? "", supabaseAnonKey ?? "", {
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
+// Se usan valores de relleno cuando faltan las variables de entorno (por
+// ejemplo, durante el build sin .env.local) para que createClient no tire
+// una excepción y rompa el prerenderizado estático. En tiempo de ejecución
+// real las llamadas a Supabase van a fallar igual, pero de forma controlada.
+export const supabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder-anon-key",
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
     },
-  },
-});
+  }
+);

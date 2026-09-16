@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useCategorias } from "@/lib/useCategorias";
 import { useAuth } from "@/lib/useAuth";
-import { Categoria, Persona } from "@/lib/types";
+import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
+import { Categoria } from "@/lib/types";
 import { formatMonto } from "@/lib/formato";
 import { movimientosVisibles } from "@/lib/calculos";
 import MovementRow from "@/components/MovementRow";
@@ -12,16 +13,17 @@ import MovementRow from "@/components/MovementRow";
 export default function HistorialPage() {
   const { movimientos, cargando } = useMovimientos();
   const { categorias } = useCategorias();
-  const { usuario } = useAuth();
+  const { perfil } = useAuth();
+  const { perfiles } = usePerfilesHogar();
   const [mes, setMes] = useState("");
   const [categoria, setCategoria] = useState<Categoria | "">("");
-  const [pagadoPor, setPagadoPor] = useState<Persona | "">("");
+  const [pagadoPor, setPagadoPor] = useState<string>("");
 
   // Los gastos personales del otro usuario no aparecen ni en los filtros
   // ni en la lista.
   const visibles = useMemo(
-    () => (usuario ? movimientosVisibles(movimientos, usuario) : []),
-    [movimientos, usuario]
+    () => (perfil ? movimientosVisibles(movimientos, perfil.id) : []),
+    [movimientos, perfil]
   );
 
   const meses = useMemo(() => {
@@ -53,7 +55,6 @@ export default function HistorialPage() {
       </header>
 
       <div className="glass grid grid-cols-3 divide-x divide-border rounded-2xl p-1">
-
         <select
           value={mes}
           onChange={(e) => setMes(e.target.value)}
@@ -82,12 +83,15 @@ export default function HistorialPage() {
 
         <select
           value={pagadoPor}
-          onChange={(e) => setPagadoPor(e.target.value as Persona | "")}
+          onChange={(e) => setPagadoPor(e.target.value)}
           className="min-h-[40px] rounded-xl bg-transparent px-1 text-sm text-foreground outline-none"
         >
           <option value="">Quién</option>
-          <option value="Lolo">Lolo</option>
-          <option value="Jaz">Jaz</option>
+          {perfiles.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -101,7 +105,7 @@ export default function HistorialPage() {
         <ul className="flex flex-col gap-2">
           {filtrados.map((m) => (
             <li key={m.id}>
-              <MovementRow movimiento={m} categorias={categorias} />
+              <MovementRow movimiento={m} categorias={categorias} perfiles={perfiles} />
             </li>
           ))}
         </ul>

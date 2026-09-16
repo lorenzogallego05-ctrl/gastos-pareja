@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CategoriaRow, Movimiento } from "@/lib/types";
+import { CategoriaRow, Movimiento, Perfil } from "@/lib/types";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { formatFechaCorta, formatMonto } from "@/lib/formato";
 import { eliminarMovimiento } from "@/lib/api";
@@ -11,10 +11,14 @@ import { useToast } from "@/lib/useToast";
 export default function MovementRow({
   movimiento,
   categorias,
+  perfiles,
 }: {
   movimiento: Movimiento;
   categorias: CategoriaRow[];
+  perfiles: Perfil[];
 }) {
+  const nombrePagador =
+    perfiles.find((p) => p.id === movimiento.pagado_por)?.nombre ?? "—";
   const router = useRouter();
   const { mostrarToast } = useToast();
   const [eliminando, setEliminando] = useState(false);
@@ -56,7 +60,7 @@ export default function MovementRow({
         </p>
         <p className="truncate text-xs text-subtle">
           {formatFechaCorta(movimiento.fecha)} · {movimiento.categoria} ·{" "}
-          {movimiento.pagado_por}
+          {nombrePagador}
           {!movimiento.compartido && " · personal"}
         </p>
       </div>

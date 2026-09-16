@@ -1,73 +1,73 @@
 import { formatMonto } from "./formato";
-import { Ingreso, Movimiento, Persona, Presupuesto } from "./types";
-
-export interface Reparto {
-  pctLolo: number;
-  pctJaz: number;
-  totalCompartido: number;
-  pagadoLolo: number;
-  pagadoJaz: number;
-  leCorrespondeLolo: number;
-  leCorrespondeJaz: number;
-  diferenciaLolo: number;
-  diferenciaJaz: number;
-}
+import { Ingreso, Movimiento, Perfil, Presupuesto } from "./types";
 
 const TOLERANCIA = 1;
 
+export interface AportePersona {
+  perfilId: string;
+  nombre: string;
+  ingreso: number;
+  pct: number;
+  pagado: number;
+  leCorresponde: number;
+  // positivo = pagó de más este mes (le deben esa plata); negativo = debe.
+  diferencia: number;
+}
+
+export interface Reparto {
+  personas: AportePersona[];
+  totalCompartido: number;
+}
+
 export function calcularReparto(
-  ingreso: Ingreso | null,
+  perfiles: Perfil[],
+  ingresos: Ingreso[],
   movimientos: Movimiento[]
 ): Reparto {
-  const ingresoLolo = ingreso?.ingreso_lolo ?? 0;
-  const ingresoJaz = ingreso?.ingreso_jaz ?? 0;
-  const totalIngresos = ingresoLolo + ingresoJaz;
-
-  const pctLolo = totalIngresos > 0 ? ingresoLolo / totalIngresos : 0.5;
-  const pctJaz = totalIngresos > 0 ? ingresoJaz / totalIngresos : 0.5;
-
+  const totalIngresos = ingresos.reduce((sum, i) => sum + i.monto, 0);
   const compartidos = movimientos.filter((m) => m.compartido);
   const totalCompartido = compartidos.reduce((sum, m) => sum + m.monto, 0);
 
-  const pagadoLolo = sumaPorPersona(compartidos, "Lolo");
-  const pagadoJaz = sumaPorPersona(compartidos, "Jaz");
+  const personas: AportePersona[] = perfiles.map((p) => {
+    const ingreso = ingresos.find((i) => i.perfil_id === p.id)?.monto ?? 0;
+    const pct =
+      totalIngresos > 0
+        ? ingreso / totalIngresos
+        : perfiles.length > 0
+          ? 1 / perfiles.length
+          : 0;
+    const pagado = compartidos
+      .filter((m) => m.pagado_por === p.id)
+      .reduce((sum, m) => sum + m.monto, 0);
+    const leCorresponde = totalCompartido * pct;
+    return {
+      perfilId: p.id,
+      nombre: p.nombre,
+      ingreso,
+      pct,
+      pagado,
+      leCorresponde,
+      diferencia: pagado - leCorresponde,
+    };
+  });
 
-  const leCorrespondeLolo = totalCompartido * pctLolo;
-  const leCorrespondeJaz = totalCompartido * pctJaz;
-
-  const diferenciaLolo = pagadoLolo - leCorrespondeLolo;
-  const diferenciaJaz = pagadoJaz - leCorrespondeJaz;
-
-  return {
-    pctLolo,
-    pctJaz,
-    totalCompartido,
-    pagadoLolo,
-    pagadoJaz,
-    leCorrespondeLolo,
-    leCorrespondeJaz,
-    diferenciaLolo,
-    diferenciaJaz,
-  };
-}
-
-function sumaPorPersona(movimientos: Movimiento[], persona: Persona): number {
-  return movimientos
-    .filter((m) => m.pagado_por === persona)
-    .reduce((sum, m) => sum + m.monto, 0);
+  return { personas, totalCompartido };
 }
 
 export function fraseDeuda(reparto: Reparto): string {
-  const { diferenciaLolo } = reparto;
-  if (Math.abs(diferenciaLolo) < TOLERANCIA) return "Están al día";
-  if (diferenciaLolo > 0) {
-    return `Jaz le debe ${formatMonto(diferenciaLolo)} a Lolo`;
-  }
-  return `Lolo le debe ${formatMonto(-diferenciaLolo)} a Jaz`;
+  if (reparto.personas.length < 2) return "";
+  const [a, b] = reparto.personas;
+  if (Math.abs(a.diferencia) < TOLERANCIA) return "Están al día";
+  const acreedor = a.diferencia > 0 ? a : b;
+  const deudor = a.diferencia > 0 ? b : a;
+  return `${deudor.nombre} le debe ${formatMonto(
+    Math.abs(acreedor.diferencia)
+  )} a ${acreedor.nombre}`;
 }
 
 export function estanAlDia(reparto: Reparto): boolean {
-  return Math.abs(reparto.diferenciaLolo) < TOLERANCIA;
+  if (reparto.personas.length < 2) return true;
+  return Math.abs(reparto.personas[0].diferencia) < TOLERANCIA;
 }
 
 export function totalGastadoMes(movimientos: Movimiento[]): number {
@@ -101,29 +101,30 @@ export interface MisGastos {
   total: number;
 }
 
-// Lo que gastó realmente cada uno: lo personal (no compartido) que pagó,
-// más su parte proporcional de lo compartido (según calcularReparto).
+// Lo que gastó realmente esta persona: lo personal (no compartido) que
+// pagó, más su parte proporcional de lo compartido (según calcularReparto).
 export function calcularMisGastos(
   movimientos: Movimiento[],
   reparto: Reparto,
-  usuario: Persona
+  perfilId: string
 ): MisGastos {
   const personal = movimientos
-    .filter((m) => !m.compartido && m.pagado_por === usuario)
+    .filter((m) => !m.compartido && m.pagado_por === perfilId)
     .reduce((sum, m) => sum + m.monto, 0);
   const miParteCompartido =
-    usuario === "Lolo" ? reparto.leCorrespondeLolo : reparto.leCorrespondeJaz;
+    reparto.personas.find((p) => p.perfilId === perfilId)?.leCorresponde ?? 0;
   return { personal, miParteCompartido, total: personal + miParteCompartido };
 }
 
-// Lo que puede VER cada usuario en listas y gráficos: todo lo compartido,
-// más sus propios gastos personales. Los personales del otro no aparecen
-// en ningún lado (ni en listas, ni sumados en totales o categorías).
+// Lo que puede VER cada persona en listas y gráficos: todo lo compartido,
+// más sus propios gastos personales. Los personales del otro integrante
+// del hogar no aparecen en ningún lado (esto además está reforzado a
+// nivel de base de datos con RLS, no es solo un filtro de la interfaz).
 export function movimientosVisibles(
   movimientos: Movimiento[],
-  usuario: Persona
+  perfilId: string
 ): Movimiento[] {
-  return movimientos.filter((m) => m.compartido || m.pagado_por === usuario);
+  return movimientos.filter((m) => m.compartido || m.pagado_por === perfilId);
 }
 
 export function mapaPresupuestos(

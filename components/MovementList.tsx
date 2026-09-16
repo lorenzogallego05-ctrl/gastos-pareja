@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { CategoriaRow, Movimiento } from "@/lib/types";
+import { CategoriaRow, Movimiento, Perfil } from "@/lib/types";
 import MovementRow from "./MovementRow";
 
 export default function MovementList({
   movimientos,
   categorias,
+  perfiles,
   verTodosHref,
 }: {
   movimientos: Movimiento[];
   categorias: CategoriaRow[];
+  perfiles: Perfil[];
   verTodosHref?: string;
 }) {
   return (
@@ -29,7 +31,7 @@ export default function MovementList({
         <ul className="flex flex-col gap-2">
           {movimientos.map((m) => (
             <li key={m.id}>
-              <MovementRow movimiento={m} categorias={categorias} />
+              <MovementRow movimiento={m} categorias={categorias} perfiles={perfiles} />
             </li>
           ))}
         </ul>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
+import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
 import { useToast } from "@/lib/useToast";
 import { crearMovimiento, actualizarMovimiento, obtenerMovimiento } from "@/lib/api";
-import { Categoria, Persona } from "@/lib/types";
+import { Categoria } from "@/lib/types";
 import { fechaHoy } from "@/lib/formato";
 import CategoryChips from "@/components/CategoryChips";
 
@@ -13,14 +14,15 @@ export default function NuevoForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const idEditar = searchParams.get("id");
-  const { usuario } = useAuth();
+  const { perfil, hogar } = useAuth();
+  const { perfiles } = usePerfilesHogar();
   const { mostrarToast } = useToast();
 
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoria, setCategoria] = useState<Categoria | null>(null);
-  const [pagadoPor, setPagadoPor] = useState<Persona>(usuario ?? "Lolo");
-  const [compartido, setCompartido] = useState(true);
+  const [pagadoPor, setPagadoPor] = useState<string>(perfil?.id ?? "");
+  const [compartido, setCompartido] = useState(perfiles.length > 1);
   const [fecha, setFecha] = useState(fechaHoy());
   const [guardando, setGuardando] = useState(false);
   const [cargandoEdicion, setCargandoEdicion] = useState(!!idEditar);
@@ -58,16 +60,21 @@ export default function NuevoForm() {
       setErrorMsg("Elegí una categoría");
       return;
     }
+    if (!hogar || !pagadoPor) {
+      setErrorMsg("No se pudo identificar tu hogar. Volvé a iniciar sesión.");
+      return;
+    }
 
     setGuardando(true);
     try {
       const input = {
+        hogar_id: hogar.id,
         fecha,
         descripcion: descripcion.trim(),
         categoria,
         monto: montoNum,
         pagado_por: pagadoPor,
-        compartido,
+        compartido: perfiles.length > 1 ? compartido : false,
         notas: null,
       };
       if (idEditar) {
@@ -91,6 +98,8 @@ export default function NuevoForm() {
       </main>
     );
   }
+
+  const coloresPersona = ["bg-accent", "bg-pink"];
 
   return (
     <main
@@ -150,56 +159,52 @@ export default function NuevoForm() {
           <CategoryChips value={categoria} onChange={setCategoria} />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-muted">
-            Pagado por
-          </label>
-          <div className="grid grid-cols-2 gap-3">
+        {perfiles.length > 1 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted">
+              Pagado por
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {perfiles.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPagadoPor(p.id)}
+                  className={`min-h-[52px] rounded-full text-base font-bold transition-colors ${
+                    pagadoPor === p.id
+                      ? `${coloresPersona[i % coloresPersona.length]} text-white shadow-sm`
+                      : "glass text-muted"
+                  }`}
+                >
+                  {p.nombre}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {perfiles.length > 1 && (
+          <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
+            <span className="text-base font-medium text-foreground">
+              Gasto compartido
+            </span>
             <button
               type="button"
-              onClick={() => setPagadoPor("Lolo")}
-              className={`min-h-[52px] rounded-full text-base font-bold transition-colors ${
-                pagadoPor === "Lolo"
-                  ? "bg-accent text-white shadow-sm"
-                  : "glass text-muted"
+              role="switch"
+              aria-checked={compartido}
+              onClick={() => setCompartido((v) => !v)}
+              className={`relative h-8 w-14 rounded-full transition-colors ${
+                compartido ? "bg-accent" : "bg-border"
               }`}
             >
-              Lolo
-            </button>
-            <button
-              type="button"
-              onClick={() => setPagadoPor("Jaz")}
-              className={`min-h-[52px] rounded-full text-base font-bold transition-colors ${
-                pagadoPor === "Jaz"
-                  ? "bg-pink text-white shadow-sm"
-                  : "glass text-muted"
-              }`}
-            >
-              Jaz
+              <span
+                className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  compartido ? "translate-x-7" : "translate-x-1"
+                }`}
+              />
             </button>
           </div>
-        </div>
-
-        <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
-          <span className="text-base font-medium text-foreground">
-            Gasto compartido
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={compartido}
-            onClick={() => setCompartido((v) => !v)}
-            className={`relative h-8 w-14 rounded-full transition-colors ${
-              compartido ? "bg-accent" : "bg-border"
-            }`}
-          >
-            <span
-              className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                compartido ? "translate-x-7" : "translate-x-1"
-              }`}
-            />
-          </button>
-        </div>
+        )}
 
         {errorMsg && (
           <p className="text-sm font-medium text-danger">{errorMsg}</p>

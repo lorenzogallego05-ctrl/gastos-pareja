@@ -4,9 +4,10 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useMovimientos } from "@/lib/useMovimientos";
-import { useIngreso } from "@/lib/useIngreso";
+import { useIngresosMes } from "@/lib/useIngresosMes";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
+import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
 import {
   calcularMisGastos,
   calcularReparto,
@@ -21,13 +22,14 @@ import CategoryChart from "@/components/CategoryChart";
 import MovementList from "@/components/MovementList";
 
 export default function DashboardPage() {
-  const { usuario, cerrarSesion } = useAuth();
+  const { perfil, salir } = useAuth();
   const router = useRouter();
   const mes = mesActual();
   const { movimientos, cargando, error } = useMovimientos();
-  const { ingreso } = useIngreso(mes);
+  const { ingresos } = useIngresosMes(mes);
   const { categorias } = useCategorias();
   const { presupuestos } = usePresupuestos(mes);
+  const { perfiles } = usePerfilesHogar();
 
   const movimientosMes = useMemo(
     () => movimientos.filter((m) => m.fecha.startsWith(mes)),
@@ -35,15 +37,16 @@ export default function DashboardPage() {
   );
 
   const reparto = useMemo(
-    () => calcularReparto(ingreso, movimientosMes),
-    [ingreso, movimientosMes]
+    () => calcularReparto(perfiles, ingresos, movimientosMes),
+    [perfiles, ingresos, movimientosMes]
   );
 
   // Lo que ve ESTE usuario: los gastos personales del otro nunca aparecen
   // acá (ni en la lista, ni sumados en categorías o en el total del mes).
+  // Además, la base de datos ya filtra esto por RLS: ni siquiera llegan.
   const movimientosMesVisibles = useMemo(
-    () => (usuario ? movimientosVisibles(movimientosMes, usuario) : []),
-    [movimientosMes, usuario]
+    () => (perfil ? movimientosVisibles(movimientosMes, perfil.id) : []),
+    [movimientosMes, perfil]
   );
 
   const totalMes = useMemo(
@@ -56,16 +59,16 @@ export default function DashboardPage() {
   );
   const presupuestosMapa = useMemo(() => mapaPresupuestos(presupuestos), [presupuestos]);
   const misGastos = useMemo(
-    () => (usuario ? calcularMisGastos(movimientosMes, reparto, usuario) : null),
-    [movimientosMes, reparto, usuario]
+    () => (perfil ? calcularMisGastos(movimientosMes, reparto, perfil.id) : null),
+    [movimientosMes, reparto, perfil]
   );
   const ultimos = useMemo(
-    () => (usuario ? movimientosVisibles(movimientos, usuario).slice(0, 10) : []),
-    [movimientos, usuario]
+    () => (perfil ? movimientosVisibles(movimientos, perfil.id).slice(0, 10) : []),
+    [movimientos, perfil]
   );
 
-  function cambiarUsuario() {
-    cerrarSesion();
+  async function cambiarUsuario() {
+    await salir();
     router.replace("/login");
   }
 
@@ -73,12 +76,14 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1 pt-1">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium text-subtle">Hola, {usuario} 👋</p>
+          <p className="text-xs font-medium text-subtle">
+            Hola, {perfil?.nombre} 👋
+          </p>
           <button
             onClick={cambiarUsuario}
             className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
           >
-            Cambiar
+            Salir
           </button>
         </div>
         <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-foreground">
@@ -96,7 +101,7 @@ export default function DashboardPage() {
             </p>
           )}
 
-          <DebtCard reparto={reparto} />
+          {reparto.personas.length >= 2 && <DebtCard reparto={reparto} />}
 
           <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">
@@ -105,16 +110,20 @@ export default function DashboardPage() {
             <p className="mt-1 text-3xl font-extrabold text-foreground">
               {formatMonto(totalMes)}
             </p>
-            <p className="mt-1 text-xs text-subtle">
-              Compartido — Lolo: {formatMonto(reparto.pagadoLolo)} · Jaz:{" "}
-              {formatMonto(reparto.pagadoJaz)}
-            </p>
+            {reparto.personas.length >= 2 && (
+              <p className="mt-1 text-xs text-subtle">
+                Compartido —{" "}
+                {reparto.personas
+                  .map((p) => `${p.nombre}: ${formatMonto(p.pagado)}`)
+                  .join(" · ")}
+              </p>
+            )}
           </div>
 
-          {misGastos && (
+          {misGastos && reparto.personas.length >= 2 && (
             <div className="glass rounded-[28px] p-5">
               <h2 className="mb-3 text-base font-semibold text-foreground">
-                Mis gastos ({usuario})
+                Mis gastos ({perfil?.nombre})
               </h2>
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex items-center justify-between">
@@ -153,6 +162,7 @@ export default function DashboardPage() {
           <MovementList
             movimientos={ultimos}
             categorias={categorias}
+            perfiles={perfiles}
             verTodosHref="/historial"
           />
         </>

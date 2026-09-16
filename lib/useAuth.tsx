@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session } from "@supabase/supabase-js";
 import {
   createContext,
   useCallback,
@@ -7,47 +8,84 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Persona } from "./types";
-
-const STORAGE_KEY = "gastos-pareja:usuario";
+import { obtenerMiHogar, obtenerMiPerfil, cerrarSesion } from "./api";
+import { supabase } from "./supabaseClient";
+import { Hogar, Perfil } from "./types";
 
 interface AuthContextValue {
-  usuario: Persona | null;
   cargando: boolean;
-  elegirUsuario: (persona: Persona) => void;
-  cerrarSesion: () => void;
+  session: Session | null;
+  perfil: Perfil | null;
+  hogar: Hogar | null;
+  recargarPerfil: () => Promise<void>;
+  salir: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [usuario, setUsuario] = useState<Persona | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [session, setSession] = useState<Session | null>(null);
+  const [perfil, setPerfil] = useState<Perfil | null>(null);
+  const [hogar, setHogar] = useState<Hogar | null>(null);
 
-  useEffect(() => {
-    try {
-      const guardado = window.localStorage.getItem(STORAGE_KEY);
-      if (guardado === "Lolo" || guardado === "Jaz") {
-        setUsuario(guardado);
-      }
-    } finally {
-      setCargando(false);
+  const cargarPerfilYHogar = useCallback(async (userId: string) => {
+    const miPerfil = await obtenerMiPerfil(userId);
+    setPerfil(miPerfil);
+    if (miPerfil) {
+      const miHogar = await obtenerMiHogar();
+      setHogar(miHogar);
+    } else {
+      setHogar(null);
     }
   }, []);
 
-  const elegirUsuario = useCallback((persona: Persona) => {
-    window.localStorage.setItem(STORAGE_KEY, persona);
-    setUsuario(persona);
-  }, []);
+  const recargarPerfil = useCallback(async () => {
+    if (session?.user.id) await cargarPerfilYHogar(session.user.id);
+  }, [session, cargarPerfilYHogar]);
 
-  const cerrarSesion = useCallback(() => {
-    window.localStorage.removeItem(STORAGE_KEY);
-    setUsuario(null);
+  useEffect(() => {
+    let activo = true;
+
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!activo) return;
+      setSession(data.session);
+      if (data.session) {
+        await cargarPerfilYHogar(data.session.user.id);
+      }
+      if (activo) setCargando(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_evento, nuevaSession) => {
+        if (!activo) return;
+        setSession(nuevaSession);
+        if (nuevaSession) {
+          await cargarPerfilYHogar(nuevaSession.user.id);
+        } else {
+          setPerfil(null);
+          setHogar(null);
+        }
+        setCargando(false);
+      }
+    );
+
+    return () => {
+      activo = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [cargarPerfilYHogar]);
+
+  const salir = useCallback(async () => {
+    await cerrarSesion();
+    setSession(null);
+    setPerfil(null);
+    setHogar(null);
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ usuario, cargando, elegirUsuario, cerrarSesion }}
+      value={{ cargando, session, perfil, hogar, recargarPerfil, salir }}
     >
       {children}
     </AuthContext.Provider>

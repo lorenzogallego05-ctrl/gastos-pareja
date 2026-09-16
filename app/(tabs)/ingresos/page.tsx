@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useIngreso } from "@/lib/useIngreso";
+import { useIngresosMes } from "@/lib/useIngresosMes";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
 import { useAuth } from "@/lib/useAuth";
+import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
 import { guardarIngreso, guardarPresupuesto } from "@/lib/api";
 import { useToast } from "@/lib/useToast";
 import { formatMes, formatMonto, mesActual } from "@/lib/formato";
@@ -13,6 +14,8 @@ import { mapaPresupuestos, movimientosVisibles, totalesPorCategoria } from "@/li
 import SegmentedControl from "@/components/SegmentedControl";
 
 type Vista = "ingresos" | "presupuestos";
+
+const COLORES_PERSONA = ["var(--accent)", "var(--pink)"];
 
 export default function IngresosPage() {
   const [mes, setMes] = useState(mesActual());
@@ -54,36 +57,47 @@ export default function IngresosPage() {
 }
 
 function SeccionIngresos({ mes }: { mes: string }) {
-  const { ingreso, cargando } = useIngreso(mes);
+  const { hogar } = useAuth();
+  const { perfiles } = usePerfilesHogar();
+  const { ingresos, cargando } = useIngresosMes(mes);
   const { mostrarToast } = useToast();
 
-  const [ingresoLolo, setIngresoLolo] = useState("");
-  const [ingresoJaz, setIngresoJaz] = useState("");
+  const [montos, setMontos] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
     // Sincroniza los campos del formulario cuando cambia el mes o llegan
     // datos nuevos por Supabase Realtime.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIngresoLolo(ingreso ? String(ingreso.ingreso_lolo) : "");
-    setIngresoJaz(ingreso ? String(ingreso.ingreso_jaz) : "");
-  }, [ingreso, mes]);
+    setMontos(
+      Object.fromEntries(
+        perfiles.map((p) => [
+          p.id,
+          String(ingresos.find((i) => i.perfil_id === p.id)?.monto ?? ""),
+        ])
+      )
+    );
+  }, [ingresos, perfiles, mes]);
 
-  const totalIngresos = (Number(ingresoLolo) || 0) + (Number(ingresoJaz) || 0);
-  const pctLolo = useMemo(
-    () => (totalIngresos > 0 ? (Number(ingresoLolo) || 0) / totalIngresos : 0),
-    [ingresoLolo, totalIngresos]
+  const totalIngresos = perfiles.reduce(
+    (sum, p) => sum + (Number(montos[p.id]?.replace(",", ".")) || 0),
+    0
   );
-  const pctJaz = totalIngresos > 0 ? 1 - pctLolo : 0;
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
+    if (!hogar) return;
     setGuardando(true);
     try {
-      await guardarIngreso(
-        mes,
-        Number(ingresoLolo.replace(",", ".")) || 0,
-        Number(ingresoJaz.replace(",", ".")) || 0
+      await Promise.all(
+        perfiles.map((p) =>
+          guardarIngreso(
+            hogar.id,
+            mes,
+            p.id,
+            Number(montos[p.id]?.replace(",", ".")) || 0
+          )
+        )
       );
       mostrarToast("Ingresos guardados");
     } catch {
@@ -97,65 +111,58 @@ function SeccionIngresos({ mes }: { mes: string }) {
 
   return (
     <form onSubmit={guardar} className="flex flex-col gap-5">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-muted">
-          Ingreso de Lolo
-        </label>
-        <div className="glass flex items-center rounded-2xl px-4">
-          <span className="text-lg font-bold text-subtle">$</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={ingresoLolo}
-            onChange={(e) => setIngresoLolo(e.target.value.replace(/[^0-9.,]/g, ""))}
-            placeholder="0"
-            className="w-full bg-transparent px-2 py-3 text-xl font-semibold text-foreground outline-none"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-muted">
-          Ingreso de Jaz
-        </label>
-        <div className="glass flex items-center rounded-2xl px-4">
-          <span className="text-lg font-bold text-subtle">$</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={ingresoJaz}
-            onChange={(e) => setIngresoJaz(e.target.value.replace(/[^0-9.,]/g, ""))}
-            placeholder="0"
-            className="w-full bg-transparent px-2 py-3 text-xl font-semibold text-foreground outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="glass rounded-[28px] p-5">
-        <p className="mb-3 text-sm font-medium text-muted">
-          % de reparto en {formatMes(mes)}
-        </p>
-        {totalIngresos > 0 ? (
-          <div className="flex flex-col gap-3">
-            <PorcentajeBar
-              nombre="Lolo"
-              pct={pctLolo}
-              monto={Number(ingresoLolo) || 0}
-              color="var(--accent)"
-            />
-            <PorcentajeBar
-              nombre="Jaz"
-              pct={pctJaz}
-              monto={Number(ingresoJaz) || 0}
-              color="var(--pink)"
+      {perfiles.map((p) => (
+        <div key={p.id}>
+          <label className="mb-1 block text-sm font-medium text-muted">
+            Ingreso de {p.nombre}
+          </label>
+          <div className="glass flex items-center rounded-2xl px-4">
+            <span className="text-lg font-bold text-subtle">$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={montos[p.id] ?? ""}
+              onChange={(e) =>
+                setMontos((m) => ({
+                  ...m,
+                  [p.id]: e.target.value.replace(/[^0-9.,]/g, ""),
+                }))
+              }
+              placeholder="0"
+              className="w-full bg-transparent px-2 py-3 text-xl font-semibold text-foreground outline-none"
             />
           </div>
-        ) : (
-          <p className="text-sm text-subtle">
-            Cargá los dos ingresos para ver el porcentaje.
+        </div>
+      ))}
+
+      {perfiles.length > 1 && (
+        <div className="glass rounded-[28px] p-5">
+          <p className="mb-3 text-sm font-medium text-muted">
+            % de reparto en {formatMes(mes)}
           </p>
-        )}
-      </div>
+          {totalIngresos > 0 ? (
+            <div className="flex flex-col gap-3">
+              {perfiles.map((p, i) => {
+                const monto = Number(montos[p.id]?.replace(",", ".")) || 0;
+                const pct = totalIngresos > 0 ? monto / totalIngresos : 0;
+                return (
+                  <PorcentajeBar
+                    key={p.id}
+                    nombre={p.nombre}
+                    pct={pct}
+                    monto={monto}
+                    color={COLORES_PERSONA[i % COLORES_PERSONA.length]}
+                  />
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-subtle">
+              Cargá los ingresos para ver el porcentaje.
+            </p>
+          )}
+        </div>
+      )}
 
       <button
         type="submit"
@@ -169,10 +176,10 @@ function SeccionIngresos({ mes }: { mes: string }) {
 }
 
 function SeccionPresupuestos({ mes }: { mes: string }) {
+  const { hogar, perfil } = useAuth();
   const { categorias, cargando: cargandoCategorias } = useCategorias();
   const { movimientos, cargando: cargandoMovimientos } = useMovimientos();
   const { presupuestos, cargando: cargandoPresupuestos } = usePresupuestos(mes);
-  const { usuario } = useAuth();
   const { mostrarToast } = useToast();
 
   const [montos, setMontos] = useState<Record<string, string>>({});
@@ -191,8 +198,8 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
 
   const movimientosMesVisibles = useMemo(() => {
     const delMes = movimientos.filter((m) => m.fecha.startsWith(mes));
-    return usuario ? movimientosVisibles(delMes, usuario) : [];
-  }, [movimientos, mes, usuario]);
+    return perfil ? movimientosVisibles(delMes, perfil.id) : [];
+  }, [movimientos, mes, perfil]);
   const gastadoPorCategoria = useMemo(() => {
     const mapa: Record<string, number> = {};
     for (const d of totalesPorCategoria(movimientosMesVisibles)) mapa[d.categoria] = d.total;
@@ -200,12 +207,13 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
   }, [movimientosMesVisibles]);
 
   async function guardarTodo() {
+    if (!hogar) return;
     setGuardando(true);
     try {
       const cambios = Object.entries(montos).filter(([, v]) => v.trim() !== "");
       await Promise.all(
         cambios.map(([categoria, valor]) =>
-          guardarPresupuesto(mes, categoria, Number(valor.replace(",", ".")) || 0)
+          guardarPresupuesto(hogar.id, mes, categoria, Number(valor.replace(",", ".")) || 0)
         )
       );
       mostrarToast("Presupuestos guardados");
