@@ -222,14 +222,38 @@ alter table public.categorias add column if not exists hogar_id uuid references 
 alter table public.presupuestos add column if not exists hogar_id uuid references public.hogares (id) on delete cascade;
 alter table public.movimientos add column if not exists hogar_id uuid references public.hogares (id) on delete cascade;
 
+-- El unique(nombre) global de "categorias" (de la migración 0002) tiene
+-- que pasar a ser por hogar SIEMPRE, sin importar si hay datos previos:
+-- la migración 0002 ya deja cargadas 12 categorías globales, así que sin
+-- este cambio, el trigger que siembra las 12 categorías del PRIMER hogar
+-- que se cree ('Vivienda', 'Supermercado', ...) chocaría contra esos
+-- nombres ya existentes y la creación de ese hogar fallaría. Esto obliga
+-- a rehacer también las FK de movimientos/presupuestos hacia categorias,
+-- que apuntaban solo a categorias(nombre): ahora son compuestas
+-- (hogar_id, categoria) → categorias(hogar_id, nombre), así un gasto o
+-- presupuesto solo puede usar una categoría de su propio hogar. Si hay
+-- filas con hogar_id todavía nulo (datos de antes de esta migración), la
+-- FK simplemente no las valida hasta que la migración de corte les
+-- asigne hogar_id (una FK no chequea una fila si alguna de sus columnas
+-- es NULL).
+
+alter table public.movimientos drop constraint if exists movimientos_categoria_fkey;
+alter table public.presupuestos drop constraint if exists presupuestos_categoria_fkey;
+alter table public.categorias drop constraint if exists categorias_nombre_key;
+alter table public.categorias drop constraint if exists categorias_hogar_nombre_key;
+alter table public.categorias add constraint categorias_hogar_nombre_key unique (hogar_id, nombre);
+
+alter table public.movimientos add constraint movimientos_categoria_fkey
+  foreign key (hogar_id, categoria) references public.categorias (hogar_id, nombre) on update cascade;
+alter table public.presupuestos add constraint presupuestos_categoria_fkey
+  foreign key (hogar_id, categoria) references public.categorias (hogar_id, nombre) on update cascade on delete cascade;
+
 do $$
 begin
-  if (select count(*) from public.categorias) = 0 then
+  if (select count(*) from public.categorias where hogar_id is null) = 0 then
     alter table public.categorias alter column hogar_id set not null;
-    alter table public.categorias drop constraint if exists categorias_nombre_key;
-    alter table public.categorias add constraint categorias_hogar_nombre_key unique (hogar_id, nombre);
   else
-    raise notice 'categorias tiene filas existentes: no se fuerza hogar_id NOT NULL. Ver migración de corte para hogares existentes.';
+    raise notice 'categorias tiene filas sin hogar_id (de antes de esta migración): no se fuerza NOT NULL todavía. Ver migración de corte para hogares existentes.';
   end if;
 end $$;
 
@@ -309,10 +333,17 @@ drop policy if exists "movimientos_insert" on public.movimientos;
 drop policy if exists "movimientos_update" on public.movimientos;
 drop policy if exists "movimientos_delete" on public.movimientos;
 
+-- El cast a texto es a propósito: en un proyecto con datos reales
+-- previos a esta migración, "pagado_por" puede seguir siendo el
+-- persona_enum viejo ('Lolo'/'Jaz') hasta que corra la migración de
+-- corte (0004), y comparar un enum contra un uuid directamente rompería
+-- esta política (error de tipos) apenas se intenta crear. Comparando
+-- como texto, mientras tanto simplemente no matchea (no rompe), y una
+-- vez migrado a uuid real sigue funcionando igual.
 create policy "movimientos_select" on public.movimientos
   for select using (
     hogar_id = public.hogar_id_actual()
-    and (compartido = true or pagado_por = auth.uid())
+    and (compartido = true or pagado_por::text = auth.uid()::text)
   );
 create policy "movimientos_insert" on public.movimientos
   for insert with check (hogar_id = public.hogar_id_actual());
