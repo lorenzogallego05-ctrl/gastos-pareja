@@ -12,12 +12,12 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Gastos Pareja",
+  title: "Fairo",
   description: "Control de gastos compartidos, con reparto proporcional a los ingresos.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Gastos Pareja",
+    title: "Fairo",
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -46,8 +46,8 @@ export const viewport: Viewport = {
   userScalable: false,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f4f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#030308" },
+    { media: "(prefers-color-scheme: light)", color: "#faf6f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1512" },
   ],
 };
 

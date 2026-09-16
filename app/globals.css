@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f2f4f8;
+  --background: #faf6f0;
   --surface: #ffffff;
-  --foreground: #0b0b0d;
-  --muted: #55565c;
-  --subtle: #8a8b92;
-  --border: rgba(11, 11, 13, 0.09);
-  --accent: #007aff;
-  --accent-strong: #0059c8;
+  --foreground: #2a211b;
+  --muted: #6b5d4f;
+  --subtle: #9c8c7d;
+  --border: rgba(42, 33, 27, 0.1);
+  --accent: #b5502e;
+  --accent-strong: #7c371b;
   --pink: #ff2d55;
   --good: #34c759;
   --danger: #ff3b30;
@@ -42,14 +42,14 @@
    manualmente en Configuración (ver lib/useTheme.tsx → data-theme). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #030308;
-    --surface: #1c1c1f;
-    --foreground: #ffffff;
-    --muted: #b8b9c0;
-    --subtle: #8a8b92;
-    --border: rgba(255, 255, 255, 0.12);
-    --accent: #0a84ff;
-    --accent-strong: #6bb3ff;
+    --background: #1c1512;
+    --surface: #2a211b;
+    --foreground: #faf5ef;
+    --muted: #c9bcae;
+    --subtle: #9c8c7d;
+    --border: rgba(250, 245, 239, 0.12);
+    --accent: #dc8360;
+    --accent-strong: #f0a87d;
     --pink: #ff375f;
     --good: #30d158;
     --danger: #ff453a;
@@ -63,14 +63,14 @@
 
 /* Elección manual "Oscuro", gane o no el sistema. */
 :root[data-theme="dark"] {
-  --background: #030308;
-  --surface: #1c1c1f;
-  --foreground: #ffffff;
-  --muted: #b8b9c0;
-  --subtle: #8a8b92;
-  --border: rgba(255, 255, 255, 0.12);
-  --accent: #0a84ff;
-  --accent-strong: #6bb3ff;
+  --background: #1c1512;
+  --surface: #2a211b;
+  --foreground: #faf5ef;
+  --muted: #c9bcae;
+  --subtle: #9c8c7d;
+  --border: rgba(250, 245, 239, 0.12);
+  --accent: #dc8360;
+  --accent-strong: #f0a87d;
   --pink: #ff375f;
   --good: #30d158;
   --danger: #ff453a;

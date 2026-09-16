@@ -1,4 +1,4 @@
-# Gastos Pareja
+# Fairo
 
 App (PWA) para llevar el control de gastos compartidos entre pareja (o de
 una sola persona), con reparto **proporcional a los ingresos** de cada uno
@@ -189,7 +189,7 @@ automáticamente.
    arriba), en la barra inferior.
 3. Deslizá hacia abajo en el menú y elegí **"Agregar a inicio"** /
    **"Add to Home Screen"**.
-4. Confirmá el nombre ("Gastos Pareja") y tocá **Agregar**.
+4. Confirmá el nombre ("Fairo") y tocá **Agregar**.
 5. Repetí los mismos pasos en el otro iPhone.
 
 A partir de ahí, el ícono abre la app a pantalla completa, sin la barra de

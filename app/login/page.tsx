@@ -48,7 +48,7 @@ export default function LoginPage() {
           priority
         />
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Gastos Pareja</h1>
+          <h1 className="text-2xl font-bold text-foreground">Fairo</h1>
           <p className="mt-1 text-sm text-muted">
             Control de gastos compartidos
           </p>

@@ -2,16 +2,16 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Gastos Pareja",
-    short_name: "Gastos",
+    name: "Fairo",
+    short_name: "Fairo",
     description:
-      "Control de gastos compartidos entre pareja, con reparto proporcional a los ingresos.",
+      "Control de gastos compartidos, con reparto proporcional a los ingresos.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#f9f9f7",
-    theme_color: "#2a78d6",
+    background_color: "#faf6f0",
+    theme_color: "#b5502e",
     lang: "es",
     icons: [
       {

@@ -63,7 +63,7 @@ export default function RegistroPage() {
         />
         <div>
           <h1 className="text-2xl font-bold text-foreground">Crear cuenta</h1>
-          <p className="mt-1 text-sm text-muted">Gastos Pareja</p>
+          <p className="mt-1 text-sm text-muted">Fairo</p>
         </div>
       </div>
 
