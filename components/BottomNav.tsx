@@ -7,6 +7,7 @@ const TABS = [
   { href: "/", label: "Inicio", icon: "🏠" },
   { href: "/historial", label: "Historial", icon: "📋" },
   { href: "/ingresos", label: "Finanzas", icon: "💰" },
+  { href: "/configuracion", label: "Ajustes", icon: "⚙️" },
 ];
 
 export default function BottomNav() {

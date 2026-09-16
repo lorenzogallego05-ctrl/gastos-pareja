@@ -5,10 +5,11 @@ import { useIngreso } from "@/lib/useIngreso";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
+import { useAuth } from "@/lib/useAuth";
 import { guardarIngreso, guardarPresupuesto } from "@/lib/api";
 import { useToast } from "@/lib/useToast";
 import { formatMes, formatMonto, mesActual } from "@/lib/formato";
-import { mapaPresupuestos, totalesPorCategoria } from "@/lib/calculos";
+import { mapaPresupuestos, movimientosVisibles, totalesPorCategoria } from "@/lib/calculos";
 import SegmentedControl from "@/components/SegmentedControl";
 
 type Vista = "ingresos" | "presupuestos";
@@ -171,6 +172,7 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
   const { categorias, cargando: cargandoCategorias } = useCategorias();
   const { movimientos, cargando: cargandoMovimientos } = useMovimientos();
   const { presupuestos, cargando: cargandoPresupuestos } = usePresupuestos(mes);
+  const { usuario } = useAuth();
   const { mostrarToast } = useToast();
 
   const [montos, setMontos] = useState<Record<string, string>>({});
@@ -187,15 +189,15 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
     );
   }, [presupuestosMapa, mes]);
 
-  const movimientosMes = useMemo(
-    () => movimientos.filter((m) => m.fecha.startsWith(mes)),
-    [movimientos, mes]
-  );
+  const movimientosMesVisibles = useMemo(() => {
+    const delMes = movimientos.filter((m) => m.fecha.startsWith(mes));
+    return usuario ? movimientosVisibles(delMes, usuario) : [];
+  }, [movimientos, mes, usuario]);
   const gastadoPorCategoria = useMemo(() => {
     const mapa: Record<string, number> = {};
-    for (const d of totalesPorCategoria(movimientosMes)) mapa[d.categoria] = d.total;
+    for (const d of totalesPorCategoria(movimientosMesVisibles)) mapa[d.categoria] = d.total;
     return mapa;
-  }, [movimientosMes]);
+  }, [movimientosMesVisibles]);
 
   async function guardarTodo() {
     setGuardando(true);

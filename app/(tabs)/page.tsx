@@ -11,6 +11,7 @@ import {
   calcularMisGastos,
   calcularReparto,
   mapaPresupuestos,
+  movimientosVisibles,
   totalGastadoMes,
   totalesPorCategoria,
 } from "@/lib/calculos";
@@ -38,17 +39,30 @@ export default function DashboardPage() {
     [ingreso, movimientosMes]
   );
 
-  const totalMes = useMemo(() => totalGastadoMes(movimientosMes), [movimientosMes]);
+  // Lo que ve ESTE usuario: los gastos personales del otro nunca aparecen
+  // acá (ni en la lista, ni sumados en categorías o en el total del mes).
+  const movimientosMesVisibles = useMemo(
+    () => (usuario ? movimientosVisibles(movimientosMes, usuario) : []),
+    [movimientosMes, usuario]
+  );
+
+  const totalMes = useMemo(
+    () => totalGastadoMes(movimientosMesVisibles),
+    [movimientosMesVisibles]
+  );
   const categoriaTotales = useMemo(
-    () => totalesPorCategoria(movimientosMes),
-    [movimientosMes]
+    () => totalesPorCategoria(movimientosMesVisibles),
+    [movimientosMesVisibles]
   );
   const presupuestosMapa = useMemo(() => mapaPresupuestos(presupuestos), [presupuestos]);
   const misGastos = useMemo(
     () => (usuario ? calcularMisGastos(movimientosMes, reparto, usuario) : null),
     [movimientosMes, reparto, usuario]
   );
-  const ultimos = movimientos.slice(0, 10);
+  const ultimos = useMemo(
+    () => (usuario ? movimientosVisibles(movimientos, usuario).slice(0, 10) : []),
+    [movimientos, usuario]
+  );
 
   function cambiarUsuario() {
     cerrarSesion();

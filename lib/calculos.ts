@@ -116,6 +116,16 @@ export function calcularMisGastos(
   return { personal, miParteCompartido, total: personal + miParteCompartido };
 }
 
+// Lo que puede VER cada usuario en listas y gráficos: todo lo compartido,
+// más sus propios gastos personales. Los personales del otro no aparecen
+// en ningún lado (ni en listas, ni sumados en totales o categorías).
+export function movimientosVisibles(
+  movimientos: Movimiento[],
+  usuario: Persona
+): Movimiento[] {
+  return movimientos.filter((m) => m.compartido || m.pagado_por === usuario);
+}
+
 export function mapaPresupuestos(
   presupuestos: Presupuesto[]
 ): Record<string, number> {

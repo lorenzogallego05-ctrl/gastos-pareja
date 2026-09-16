@@ -39,8 +39,18 @@ Esta lógica vive en `lib/calculos.ts`.
 - **Presupuestos**: en la pestaña "Finanzas" → "Presupuestos" se puede
   definir un límite mensual por categoría. Si el gasto real lo supera, la
   barra se pone en rojo (en esa pantalla y en el dashboard).
-- **Historial** filtrable por mes, categoría y quién pagó, con swipe para
-  editar o borrar cada movimiento.
+- **Historial** filtrable por mes, categoría y quién pagó. Tocar un
+  movimiento lo abre para editarlo; el ícono 🗑️ lo borra.
+- **Privacidad entre los dos**: los gastos marcados como personales (no
+  compartidos) solo los ve quien los cargó — el otro no los ve en ninguna
+  pantalla (dashboard, historial, gráfico por categoría), aunque sí se
+  siguen sumando a los totales que corresponden a cada uno en "Mis
+  gastos". Importante: esto es una privacidad "de uso normal" pensada para
+  que cada uno no vea los gastos personales del otro navegando la app —
+  no reemplaza un login real, ya que no hay contraseñas ni autenticación
+  de por medio (ver más abajo).
+- **Configuración**: selector de tema Claro / Oscuro / Automático (se
+  guarda en el propio dispositivo) y acceso para cambiar de usuario.
 
 ---
 

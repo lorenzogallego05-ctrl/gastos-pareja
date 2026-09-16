@@ -3,30 +3,40 @@
 import { useMemo, useState } from "react";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useCategorias } from "@/lib/useCategorias";
+import { useAuth } from "@/lib/useAuth";
 import { Categoria, Persona } from "@/lib/types";
 import { formatMonto } from "@/lib/formato";
+import { movimientosVisibles } from "@/lib/calculos";
 import MovementRow from "@/components/MovementRow";
 
 export default function HistorialPage() {
   const { movimientos, cargando } = useMovimientos();
   const { categorias } = useCategorias();
+  const { usuario } = useAuth();
   const [mes, setMes] = useState("");
   const [categoria, setCategoria] = useState<Categoria | "">("");
   const [pagadoPor, setPagadoPor] = useState<Persona | "">("");
 
+  // Los gastos personales del otro usuario no aparecen ni en los filtros
+  // ni en la lista.
+  const visibles = useMemo(
+    () => (usuario ? movimientosVisibles(movimientos, usuario) : []),
+    [movimientos, usuario]
+  );
+
   const meses = useMemo(() => {
-    const set = new Set(movimientos.map((m) => m.fecha.slice(0, 7)));
+    const set = new Set(visibles.map((m) => m.fecha.slice(0, 7)));
     return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [movimientos]);
+  }, [visibles]);
 
   const filtrados = useMemo(() => {
-    return movimientos.filter((m) => {
+    return visibles.filter((m) => {
       if (mes && !m.fecha.startsWith(mes)) return false;
       if (categoria && m.categoria !== categoria) return false;
       if (pagadoPor && m.pagado_por !== pagadoPor) return false;
       return true;
     });
-  }, [movimientos, mes, categoria, pagadoPor]);
+  }, [visibles, mes, categoria, pagadoPor]);
 
   const total = filtrados.reduce((sum, m) => sum + m.monto, 0);
 
