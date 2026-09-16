@@ -301,7 +301,12 @@ begin
     );
     create index ingresos_hogar_id_idx on public.ingresos (hogar_id);
   else
-    raise notice 'ingresos tiene filas existentes: no se recrea la tabla. Ver migración de corte para hogares existentes.';
+    -- No se recrea la tabla (tiene datos previos), pero igual necesita
+    -- la columna "hogar_id" (nullable por ahora) para que las políticas
+    -- de RLS de más abajo puedan crearse sin error. Queda en null hasta
+    -- la migración de corte, que reconstruye esta tabla del todo.
+    alter table public.ingresos add column if not exists hogar_id uuid references public.hogares (id) on delete cascade;
+    raise notice 'ingresos tiene filas existentes: se agregó hogar_id (nullable), no se recrea la tabla todavía. Ver migración de corte para hogares existentes.';
   end if;
 end $$;
 
