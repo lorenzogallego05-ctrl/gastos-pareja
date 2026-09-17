@@ -124,7 +124,7 @@ export default function DashboardPage() {
             />
           )}
 
-          <CuentasCard />
+          <CuentasCard movimientos={movimientos} />
 
           <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">

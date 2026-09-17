@@ -2,20 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { useCuentas } from "@/lib/useCuentas";
-import { useMovimientos } from "@/lib/useMovimientos";
 import { actualizarCuenta } from "@/lib/api";
 import { saldoCuenta, consumoCuentaMes } from "@/lib/calculos";
 import { formatMonto, mesActual } from "@/lib/formato";
-import { Cuenta } from "@/lib/types";
+import { Cuenta, Movimiento } from "@/lib/types";
 import EntidadLogo from "@/components/EntidadLogo";
 
 // Tarjeta de Inicio con las cuentas propias (son privadas, cada uno ve
 // solo las suyas). En modo edición se pueden reordenar (con flechas, más
 // confiable en mobile que arrastrar) y ocultar/mostrar cada una acá sin
 // borrarla ni afectar la lista completa en Finanzas > Cuentas.
-export default function CuentasCard() {
+// Recibe `movimientos` por prop (en vez de pedirlos con su propio hook)
+// porque la página de Inicio ya los tiene: pedirlos de nuevo acá abriría
+// una segunda suscripción realtime al mismo canal, y Supabase tira error
+// si se intenta escuchar un canal que la primera ya dejó suscripto.
+export default function CuentasCard({ movimientos }: { movimientos: Movimiento[] }) {
   const { cuentas, cargando } = useCuentas();
-  const { movimientos } = useMovimientos();
   const [editando, setEditando] = useState(false);
   const mes = mesActual();
 
