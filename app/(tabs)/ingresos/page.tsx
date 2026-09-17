@@ -368,6 +368,7 @@ function SeccionCuentas({ mes }: { mes: string }) {
       {(creando || editando) && (
         <FormCuenta
           cuenta={editando}
+          siguienteOrden={cuentas.length}
           onCerrar={() => {
             setCreando(false);
             setEditando(null);
@@ -380,9 +381,11 @@ function SeccionCuentas({ mes }: { mes: string }) {
 
 function FormCuenta({
   cuenta,
+  siguienteOrden,
   onCerrar,
 }: {
   cuenta: Cuenta | null;
+  siguienteOrden: number;
   onCerrar: () => void;
 }) {
   const { perfil } = useAuth();
@@ -440,6 +443,8 @@ function FormCuenta({
           icono: entidad === "otro" ? icono : null,
           saldo_base: saldoNum,
           saldo_base_fecha: fechaHoy(),
+          orden: siguienteOrden,
+          oculta_en_inicio: false,
         });
         mostrarToast("Cuenta creada");
       }

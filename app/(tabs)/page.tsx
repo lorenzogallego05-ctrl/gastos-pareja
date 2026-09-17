@@ -21,6 +21,7 @@ import {
 } from "@/lib/calculos";
 import { formatMes, formatMonto, mesActual } from "@/lib/formato";
 import DebtCard from "@/components/DebtCard";
+import CuentasCard from "@/components/CuentasCard";
 import CategoryChart from "@/components/CategoryChart";
 import MovementList from "@/components/MovementList";
 
@@ -122,6 +123,8 @@ export default function DashboardPage() {
               onLiquidado={recargarLiquidaciones}
             />
           )}
+
+          <CuentasCard />
 
           <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">

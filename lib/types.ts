@@ -90,6 +90,10 @@ export interface Cuenta {
   icono: string | null; // emoji, solo si entidad === "otro"
   saldo_base: number;
   saldo_base_fecha: string;
+  // Orden manual y visibilidad en la tarjeta "Tus cuentas" de Inicio
+  // (no afectan la lista completa en Finanzas > Cuentas).
+  orden: number;
+  oculta_en_inicio: boolean;
   creado_en: string;
 }
 
