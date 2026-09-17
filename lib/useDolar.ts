@@ -3,15 +3,26 @@
 import { useEffect, useState } from "react";
 
 // Dólar oficial (venta), para mostrar un "≈ USD" de referencia al lado de
-// los totales grandes. Se cachea en localStorage porque no hace falta
-// que sea al segundo, y si la API está caída usamos el último valor
-// conocido antes que no mostrar nada.
+// los totales grandes. No hace falta que sea al segundo: alcanza con
+// pegarle una vez por día, después de que el oficial ya terminó de
+// actualizarse (cerca de las 10am). Antes de esa hora reintenta en cada
+// carga, para no quedarse pegado con el valor del día anterior toda la
+// mañana.
 const CACHE_KEY = "fairo:dolar_oficial";
-const CACHE_MS = 30 * 60 * 1000;
+const HORA_CORTE = 10;
 
 interface DolarCache {
   venta: number;
   ts: number;
+}
+
+function cacheVigente(cache: DolarCache): boolean {
+  const fechaCache = new Date(cache.ts);
+  const ahora = new Date();
+  return (
+    fechaCache.toDateString() === ahora.toDateString() &&
+    fechaCache.getHours() >= HORA_CORTE
+  );
 }
 
 function leerCache(): DolarCache | null {
@@ -40,7 +51,7 @@ export function useDolarOficial(): number | null {
   useEffect(() => {
     let activo = true;
     const cache = leerCache();
-    if (cache && Date.now() - cache.ts < CACHE_MS) return;
+    if (cache && cacheVigente(cache)) return;
 
     fetch("https://dolarapi.com/v1/dolares/oficial")
       .then((r) => (r.ok ? r.json() : null))
