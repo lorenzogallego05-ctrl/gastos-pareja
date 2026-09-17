@@ -43,6 +43,31 @@ function guardarCache(venta: number) {
   }
 }
 
+// Pedido compartido: la cotización se muestra en más de un lugar de la
+// misma pantalla, así que sin esto cada componente pediría lo mismo por
+// separado. Guardando la promesa acá, todos esperan el mismo pedido.
+let pedidoEnCurso: Promise<number | null> | null = null;
+
+function pedirDolar(): Promise<number | null> {
+  const cache = leerCache();
+  if (cache && cacheVigente(cache)) return Promise.resolve(cache.venta);
+  if (pedidoEnCurso) return pedidoEnCurso;
+
+  pedidoEnCurso = fetch("https://dolarapi.com/v1/dolares/oficial")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data: { venta?: number } | null) => {
+      if (!data?.venta) return null;
+      guardarCache(data.venta);
+      return data.venta;
+    })
+    .catch(() => null)
+    .finally(() => {
+      pedidoEnCurso = null;
+    });
+
+  return pedidoEnCurso;
+}
+
 // Devuelve null mientras no hay dato (recién montado o la API falló sin
 // caché previo) — los que lo usan deben ocultar el "≈ USD" en ese caso.
 export function useDolarOficial(): number | null {
@@ -50,20 +75,9 @@ export function useDolarOficial(): number | null {
 
   useEffect(() => {
     let activo = true;
-    const cache = leerCache();
-    if (cache && cacheVigente(cache)) return;
-
-    fetch("https://dolarapi.com/v1/dolares/oficial")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data: { venta?: number } | null) => {
-        if (!activo || !data?.venta) return;
-        setVenta(data.venta);
-        guardarCache(data.venta);
-      })
-      .catch(() => {
-        // Si falla y no había caché, `venta` queda en null y listo.
-      });
-
+    pedirDolar().then((valor) => {
+      if (activo && valor) setVenta(valor);
+    });
     return () => {
       activo = false;
     };
