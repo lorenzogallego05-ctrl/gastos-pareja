@@ -42,6 +42,19 @@ export function formatMiles(valor: string): string {
   return decimal !== undefined ? `${enteroFormateado},${decimal}` : enteroFormateado;
 }
 
+// Suma meses a una fecha, "recortando" el día si el mes destino es más
+// corto (ej: 31 de enero + 1 mes = 28/29 de febrero, no "3 de marzo"
+// como haría sumar directo con Date).
+export function sumarMeses(fechaISO: string, meses: number): string {
+  const [anio, mes, dia] = fechaISO.split("-").map(Number);
+  const base = new Date(anio, mes - 1 + meses, 1);
+  const ultimoDiaDelMes = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  const diaFinal = Math.min(dia, ultimoDiaDelMes);
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(
+    diaFinal
+  ).padStart(2, "0")}`;
+}
+
 export function fechaHoy(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(

@@ -48,6 +48,11 @@ export interface Movimiento {
   modo: ModoGasto;
   beneficiario_id: string | null; // perfil.id, solo si modo === "para_otro"
   cuenta_id: string | null;
+  // Gasto en cuotas: cuota_actual/cuota_total/cuota_grupo_id van juntos
+  // o los tres en null (ver constraint en la migración 0006).
+  cuota_actual: number | null;
+  cuota_total: number | null;
+  cuota_grupo_id: string | null;
   notas: string | null;
   creado_en: string;
 }

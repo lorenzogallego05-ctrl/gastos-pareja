@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { sumarMeses } from "./formato";
 import {
   CategoriaRow,
   Cuenta,
@@ -133,6 +134,61 @@ export async function actualizarMovimiento(
     .single();
   if (error) throw error;
   return data as Movimiento;
+}
+
+// Genera de una sola vez todos los movimientos de un gasto en cuotas,
+// desde `cuotaActual` hasta `cuotaTotal` (inclusive), uno por mes a
+// partir de `fecha`, todos con el mismo modo/beneficiario/cuenta.
+export async function crearGastoEnCuotas(input: {
+  hogar_id: string;
+  fecha: string;
+  descripcion: string;
+  categoria: string;
+  monto: number;
+  pagado_por: string;
+  modo: MovimientoInput["modo"];
+  beneficiario_id: string | null;
+  cuenta_id: string | null;
+  cuota_actual: number;
+  cuota_total: number;
+  notas: string | null;
+}): Promise<Movimiento[]> {
+  const grupoId = crypto.randomUUID();
+  const filas = [];
+  for (let n = input.cuota_actual; n <= input.cuota_total; n++) {
+    filas.push({
+      hogar_id: input.hogar_id,
+      fecha: sumarMeses(input.fecha, n - input.cuota_actual),
+      descripcion: input.descripcion,
+      categoria: input.categoria,
+      monto: input.monto,
+      pagado_por: input.pagado_por,
+      modo: input.modo,
+      beneficiario_id: input.beneficiario_id,
+      cuenta_id: input.cuenta_id,
+      cuota_actual: n,
+      cuota_total: input.cuota_total,
+      cuota_grupo_id: grupoId,
+      notas: input.notas,
+    });
+  }
+  const { data, error } = await supabase.from("movimientos").insert(filas).select();
+  if (error) throw error;
+  return (data ?? []) as Movimiento[];
+}
+
+// Borra esta cuota y todas las que faltan del mismo plan (para cuando
+// se cancela una compra o se termina de pagar antes de tiempo).
+export async function eliminarCuotasRestantes(
+  cuotaGrupoId: string,
+  desdeCuota: number
+): Promise<void> {
+  const { error } = await supabase
+    .from("movimientos")
+    .delete()
+    .eq("cuota_grupo_id", cuotaGrupoId)
+    .gte("cuota_actual", desdeCuota);
+  if (error) throw error;
 }
 
 export async function eliminarMovimiento(id: string): Promise<void> {
