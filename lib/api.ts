@@ -177,6 +177,65 @@ export async function crearGastoEnCuotas(input: {
   return (data ?? []) as Movimiento[];
 }
 
+// Convierte un movimiento YA CARGADO (que todavía no es parte de un plan)
+// en la cuota N de un plan de M, y genera las cuotas futuras que faltan
+// (N+1 a M) con los mismos datos. Las cuotas anteriores a N no se generan:
+// son gastos que ya pasaron o nunca se cargaron en la app.
+export async function marcarComoCuota(input: {
+  id: string;
+  hogar_id: string;
+  fecha: string;
+  descripcion: string;
+  categoria: string;
+  monto: number;
+  pagado_por: string;
+  modo: MovimientoInput["modo"];
+  beneficiario_id: string | null;
+  cuenta_id: string | null;
+  cuota_actual: number;
+  cuota_total: number;
+  notas: string | null;
+}): Promise<Movimiento[]> {
+  const grupoId = crypto.randomUUID();
+  const { data: actualizado, error: errorUpd } = await supabase
+    .from("movimientos")
+    .update({
+      cuota_actual: input.cuota_actual,
+      cuota_total: input.cuota_total,
+      cuota_grupo_id: grupoId,
+    })
+    .eq("id", input.id)
+    .select()
+    .single();
+  if (errorUpd) throw errorUpd;
+
+  const filas = [];
+  for (let n = input.cuota_actual + 1; n <= input.cuota_total; n++) {
+    filas.push({
+      hogar_id: input.hogar_id,
+      fecha: sumarMeses(input.fecha, n - input.cuota_actual),
+      descripcion: input.descripcion,
+      categoria: input.categoria,
+      monto: input.monto,
+      pagado_por: input.pagado_por,
+      modo: input.modo,
+      beneficiario_id: input.beneficiario_id,
+      cuenta_id: input.cuenta_id,
+      cuota_actual: n,
+      cuota_total: input.cuota_total,
+      cuota_grupo_id: grupoId,
+      notas: input.notas,
+    });
+  }
+  let nuevas: Movimiento[] = [];
+  if (filas.length > 0) {
+    const { data, error } = await supabase.from("movimientos").insert(filas).select();
+    if (error) throw error;
+    nuevas = (data ?? []) as Movimiento[];
+  }
+  return [actualizado as Movimiento, ...nuevas];
+}
+
 // Borra esta cuota y todas las que faltan del mismo plan (para cuando
 // se cancela una compra o se termina de pagar antes de tiempo).
 export async function eliminarCuotasRestantes(

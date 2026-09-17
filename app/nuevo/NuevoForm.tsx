@@ -11,6 +11,7 @@ import {
   actualizarMovimiento,
   obtenerMovimiento,
   crearGastoEnCuotas,
+  marcarComoCuota,
 } from "@/lib/api";
 import { Categoria, ModoGasto } from "@/lib/types";
 import { fechaHoy, formatMes, sumarMeses } from "@/lib/formato";
@@ -109,7 +110,7 @@ export default function NuevoForm() {
     // privadas, no se pueden ver ni elegir las de la otra persona.
     const cuentaFinal = pagadoPor === perfil?.id ? cuentaId : null;
 
-    if (esCuota && !idEditar) {
+    if (esCuota && !cuotaOriginal) {
       const actual = Number(cuotaActual);
       const total = Number(cuotaTotal);
       if (!actual || !total || actual < 1 || actual > total) {
@@ -118,21 +119,44 @@ export default function NuevoForm() {
       }
       setGuardando(true);
       try {
-        const filas = await crearGastoEnCuotas({
-          hogar_id: hogar.id,
-          fecha,
-          descripcion: descripcion.trim(),
-          categoria,
-          monto: montoNum,
-          pagado_por: pagadoPor,
-          modo: modoFinal,
-          beneficiario_id: beneficiarioId,
-          cuenta_id: cuentaFinal,
-          cuota_actual: actual,
-          cuota_total: total,
-          notas: null,
-        });
-        mostrarToast(`${filas.length} cuotas cargadas`);
+        if (idEditar) {
+          const filas = await marcarComoCuota({
+            id: idEditar,
+            hogar_id: hogar.id,
+            fecha,
+            descripcion: descripcion.trim(),
+            categoria,
+            monto: montoNum,
+            pagado_por: pagadoPor,
+            modo: modoFinal,
+            beneficiario_id: beneficiarioId,
+            cuenta_id: cuentaFinal,
+            cuota_actual: actual,
+            cuota_total: total,
+            notas: null,
+          });
+          mostrarToast(
+            filas.length > 1
+              ? `Marcado como cuota, se cargaron ${filas.length - 1} cuotas futuras`
+              : "Marcado como cuota"
+          );
+        } else {
+          const filas = await crearGastoEnCuotas({
+            hogar_id: hogar.id,
+            fecha,
+            descripcion: descripcion.trim(),
+            categoria,
+            monto: montoNum,
+            pagado_por: pagadoPor,
+            modo: modoFinal,
+            beneficiario_id: beneficiarioId,
+            cuenta_id: cuentaFinal,
+            cuota_actual: actual,
+            cuota_total: total,
+            notas: null,
+          });
+          mostrarToast(`${filas.length} cuotas cargadas`);
+        }
         router.replace("/");
       } catch {
         setErrorMsg("No se pudo guardar. Probá de nuevo.");
@@ -319,11 +343,11 @@ export default function NuevoForm() {
           </div>
         )}
 
-        {!idEditar && (
+        {!cuotaOriginal && (
           <div>
             <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
               <span className="text-base font-medium text-foreground">
-                Es en cuotas
+                {idEditar ? "Es parte de un pago en cuotas" : "Es en cuotas"}
               </span>
               <button
                 type="button"
@@ -335,8 +359,8 @@ export default function NuevoForm() {
                 }`}
               >
                 <span
-                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                    esCuota ? "translate-x-7" : "translate-x-1"
+                  className={`absolute left-1 top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                    esCuota ? "translate-x-6" : "translate-x-0"
                   }`}
                 />
               </button>
@@ -345,8 +369,9 @@ export default function NuevoForm() {
             {esCuota && (
               <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-border p-4">
                 <p className="text-xs text-subtle">
-                  El monto de arriba es el de cada cuota. Se cargan de una
-                  todas las cuotas que faltan, una por mes.
+                  {idEditar
+                    ? "Este gasto queda como esa cuota, y se cargan solas las que faltan (una por mes). Las cuotas anteriores no se agregan."
+                    : "El monto de arriba es el de cada cuota. Se cargan de una todas las cuotas que faltan, una por mes."}
                 </p>
                 <div className="flex gap-3">
                   <div className="flex-1">
@@ -377,8 +402,12 @@ export default function NuevoForm() {
                 {Number(cuotaActual) > 0 &&
                   Number(cuotaTotal) >= Number(cuotaActual) && (
                     <p className="text-xs text-subtle">
-                      Se van a cargar {Number(cuotaTotal) - Number(cuotaActual) + 1}{" "}
-                      cuotas, de {formatMes(fecha.slice(0, 7))} a{" "}
+                      {idEditar
+                        ? `Se van a cargar ${Number(cuotaTotal) - Number(cuotaActual)} cuotas más`
+                        : `Se van a cargar ${
+                            Number(cuotaTotal) - Number(cuotaActual) + 1
+                          } cuotas`}
+                      , de {formatMes(fecha.slice(0, 7))} a{" "}
                       {formatMes(
                         sumarMeses(
                           fecha,
@@ -405,8 +434,10 @@ export default function NuevoForm() {
           >
             {guardando
               ? "Guardando..."
-              : esCuota && !idEditar
-                ? "Cargar cuotas"
+              : esCuota && !cuotaOriginal
+                ? idEditar
+                  ? "Marcar como cuota"
+                  : "Cargar cuotas"
                 : "Guardar"}
           </button>
         </div>
