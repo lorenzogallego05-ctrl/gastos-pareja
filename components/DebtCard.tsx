@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/useAuth";
 import { useToast } from "@/lib/useToast";
 import { formatFechaCorta, formatMonto } from "@/lib/formato";
 import { Liquidacion, Perfil } from "@/lib/types";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function DebtCard({
   balance,
@@ -145,12 +146,10 @@ function FormLiquidar({
       </p>
       <div className="flex items-center rounded-xl border border-border bg-background px-3">
         <span className="text-lg font-bold text-subtle">$</span>
-        <input
-          type="text"
-          inputMode="decimal"
+        <MoneyInput
           autoFocus
           value={monto}
-          onChange={(e) => setMonto(e.target.value.replace(/[^0-9.,]/g, ""))}
+          onChange={setMonto}
           className="w-full bg-transparent px-2 py-2 text-lg font-semibold text-foreground outline-none"
         />
       </div>

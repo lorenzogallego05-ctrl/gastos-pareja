@@ -99,8 +99,9 @@ export default function DashboardPage() {
           </button>
         </div>
         <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-foreground">
-          {formatMes(mes)}
+          Inicio
         </h1>
+        <p className="text-sm text-subtle">{formatMes(mes)}</p>
       </header>
 
       {cargando ? (

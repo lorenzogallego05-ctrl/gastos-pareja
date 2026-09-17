@@ -12,6 +12,7 @@ import { fechaHoy } from "@/lib/formato";
 import CategoryChips from "@/components/CategoryChips";
 import EntidadLogo from "@/components/EntidadLogo";
 import SegmentedControl from "@/components/SegmentedControl";
+import MoneyInput from "@/components/MoneyInput";
 
 export default function NuevoForm() {
   const router = useRouter();
@@ -147,13 +148,10 @@ export default function NuevoForm() {
           </label>
           <div className="glass flex items-center rounded-2xl px-4">
             <span className="text-2xl font-bold text-subtle">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <MoneyInput
               autoFocus
               value={monto}
-              onChange={(e) => setMonto(e.target.value.replace(/[^0-9.,]/g, ""))}
-              placeholder="0"
+              onChange={setMonto}
               className="w-full bg-transparent px-2 py-4 text-3xl font-bold text-foreground outline-none"
             />
           </div>

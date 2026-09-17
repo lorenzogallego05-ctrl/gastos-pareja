@@ -31,6 +31,17 @@ export function formatFechaCorta(fecha: string): string {
   });
 }
 
+// Separador de miles mientras se escribe en un input de dinero (a
+// diferencia de formatMonto, trabaja sobre el texto crudo que el
+// usuario está tipeando, sin "$" ni asumir que ya es un número válido).
+export function formatMiles(valor: string): string {
+  const limpio = valor.replace(/[^0-9,]/g, "");
+  const [entero, decimal] = limpio.split(",");
+  if (!entero) return limpio;
+  const enteroFormateado = entero.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return decimal !== undefined ? `${enteroFormateado},${decimal}` : enteroFormateado;
+}
+
 export function fechaHoy(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(

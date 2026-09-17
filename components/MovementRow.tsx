@@ -52,7 +52,7 @@ export default function MovementRow({
         if (e.key === "Enter" || e.key === " ") editar();
       }}
       aria-label={`Editar ${movimiento.descripcion}`}
-      className="mr-20 flex cursor-pointer items-center gap-3 rounded-[20px] border border-border/60 bg-surface/90 px-4 py-3 shadow-sm backdrop-blur-md active:opacity-80"
+      className="flex cursor-pointer items-center gap-3 rounded-[20px] border border-border/60 bg-surface/90 px-4 py-3 shadow-sm backdrop-blur-md active:opacity-80"
     >
       <span className="text-2xl" aria-hidden>
         {iconoDeCategoria(categorias, movimiento.categoria)}
@@ -61,7 +61,7 @@ export default function MovementRow({
         <p className="truncate font-medium text-foreground">
           {movimiento.descripcion}
         </p>
-        <p className="truncate text-xs text-subtle">
+        <p className="text-xs leading-snug text-subtle">
           {formatFechaCorta(movimiento.fecha)} · {movimiento.categoria} ·{" "}
           {nombrePagador}
           {movimiento.modo === "personal" && " · personal"}

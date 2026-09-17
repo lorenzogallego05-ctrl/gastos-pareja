@@ -28,6 +28,7 @@ import { Cuenta, TipoCuenta } from "@/lib/types";
 import { ENTIDADES_ORDEN, EMOJIS_CUENTA, infoDeEntidad } from "@/lib/entidades";
 import SegmentedControl from "@/components/SegmentedControl";
 import EntidadLogo from "@/components/EntidadLogo";
+import MoneyInput from "@/components/MoneyInput";
 
 type Vista = "ingresos" | "presupuestos" | "cuentas";
 
@@ -137,17 +138,9 @@ function SeccionIngresos({ mes }: { mes: string }) {
           </label>
           <div className="glass flex items-center rounded-2xl px-4">
             <span className="text-lg font-bold text-subtle">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <MoneyInput
               value={montos[p.id] ?? ""}
-              onChange={(e) =>
-                setMontos((m) => ({
-                  ...m,
-                  [p.id]: e.target.value.replace(/[^0-9.,]/g, ""),
-                }))
-              }
-              placeholder="0"
+              onChange={(v) => setMontos((m) => ({ ...m, [p.id]: v }))}
               className="w-full bg-transparent px-2 py-3 text-xl font-semibold text-foreground outline-none"
             />
           </div>
@@ -186,7 +179,7 @@ function SeccionIngresos({ mes }: { mes: string }) {
       <button
         type="submit"
         disabled={guardando}
-        className="min-h-[52px] w-full rounded-full bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
+        className="mr-20 min-h-[52px] w-full rounded-full bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
       >
         {guardando ? "Guardando..." : "Guardar"}
       </button>
@@ -270,16 +263,9 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
                 </span>
                 <div className="flex items-center gap-1 rounded-xl border border-border bg-background px-2">
                   <span className="text-sm text-subtle">$</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
+                  <MoneyInput
                     value={montos[cat.nombre] ?? ""}
-                    onChange={(e) =>
-                      setMontos((m) => ({
-                        ...m,
-                        [cat.nombre]: e.target.value.replace(/[^0-9.,]/g, ""),
-                      }))
-                    }
+                    onChange={(v) => setMontos((m) => ({ ...m, [cat.nombre]: v }))}
                     placeholder="Sin límite"
                     className="min-h-[36px] w-24 bg-transparent py-1 text-right text-base font-semibold text-foreground outline-none"
                   />
@@ -308,7 +294,7 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
         type="button"
         onClick={guardarTodo}
         disabled={guardando}
-        className="min-h-[52px] w-full rounded-full bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
+        className="mr-20 min-h-[52px] w-full rounded-full bg-accent text-lg font-bold text-white shadow-sm active:opacity-80 disabled:opacity-50"
       >
         {guardando ? "Guardando..." : "Guardar presupuestos"}
       </button>
@@ -373,7 +359,7 @@ function SeccionCuentas({ mes }: { mes: string }) {
         <button
           type="button"
           onClick={() => setCreando(true)}
-          className="flex min-h-[52px] items-center justify-center rounded-full border border-dashed border-accent/60 text-sm font-semibold text-accent"
+          className="mr-20 flex min-h-[52px] items-center justify-center rounded-full border border-dashed border-accent/60 text-sm font-semibold text-accent"
         >
           + Nueva cuenta
         </button>
@@ -549,12 +535,9 @@ function FormCuenta({
           </label>
           <div className="flex items-center rounded-xl border border-border bg-background px-3">
             <span className="text-lg font-bold text-subtle">$</span>
-            <input
-              type="text"
-              inputMode="decimal"
+            <MoneyInput
               value={saldo}
-              onChange={(e) => setSaldo(e.target.value.replace(/[^0-9.,]/g, ""))}
-              placeholder="0"
+              onChange={setSaldo}
               className="w-full bg-transparent px-2 py-2 text-lg font-semibold text-foreground outline-none"
             />
           </div>
@@ -567,7 +550,7 @@ function FormCuenta({
 
       {errorMsg && <p className="text-sm font-medium text-danger">{errorMsg}</p>}
 
-      <div className="flex gap-2">
+      <div className="mr-20 flex gap-2">
         <button
           type="button"
           onClick={onCerrar}
