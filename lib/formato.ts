@@ -7,6 +7,14 @@ export function formatMonto(monto: number): string {
   })}`;
 }
 
+export function formatUSD(montoArs: number, venta: number): string {
+  const usd = Math.abs(montoArs) / venta;
+  return `US$${usd.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+}
+
 export function mesActual(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

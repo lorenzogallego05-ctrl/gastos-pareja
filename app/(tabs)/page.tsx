@@ -19,7 +19,8 @@ import {
   totalGastadoMes,
   totalesPorCategoria,
 } from "@/lib/calculos";
-import { formatMes, formatMonto, mesActual } from "@/lib/formato";
+import { formatMes, formatMonto, formatUSD, mesActual } from "@/lib/formato";
+import { useDolarOficial } from "@/lib/useDolar";
 import DebtCard from "@/components/DebtCard";
 import CuentasCard from "@/components/CuentasCard";
 import CategoryChart from "@/components/CategoryChart";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const { categorias } = useCategorias();
   const { presupuestos } = usePresupuestos(mes);
   const { perfiles } = usePerfilesHogar();
+  const dolarOficial = useDolarOficial();
 
   const movimientosMes = useMemo(
     () => movimientos.filter((m) => m.fecha.startsWith(mes)),
@@ -133,6 +135,11 @@ export default function DashboardPage() {
             <p className="mt-1 text-3xl font-extrabold text-foreground">
               {formatMonto(totalMes)}
             </p>
+            {dolarOficial && (
+              <p className="text-xs text-subtle">
+                ≈ {formatUSD(totalMes, dolarOficial)} (dólar oficial)
+              </p>
+            )}
             {reparto.personas.length >= 2 && (
               <p className="mt-1 text-xs text-subtle">
                 Compartido —{" "}

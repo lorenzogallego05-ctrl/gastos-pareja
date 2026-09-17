@@ -5,7 +5,8 @@ import { estanAlDia, fraseDeuda, Balance } from "@/lib/calculos";
 import { crearLiquidacion } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { useToast } from "@/lib/useToast";
-import { formatFechaCorta, formatMonto } from "@/lib/formato";
+import { formatFechaCorta, formatMonto, formatUSD } from "@/lib/formato";
+import { useDolarOficial } from "@/lib/useDolar";
 import { Liquidacion, Perfil } from "@/lib/types";
 import MoneyInput from "@/components/MoneyInput";
 
@@ -23,6 +24,8 @@ export default function DebtCard({
   const alDia = estanAlDia(balance);
   const tinte = alDia ? "var(--good)" : "var(--accent)";
   const [formAbierto, setFormAbierto] = useState(false);
+  const dolarOficial = useDolarOficial();
+  const diferenciaAbs = Math.abs(balance.personas[0]?.diferencia ?? 0);
 
   return (
     <div
@@ -47,6 +50,12 @@ export default function DebtCard({
         {alDia && "✅ "}
         {fraseDeuda(balance)}
       </p>
+
+      {!alDia && dolarOficial && (
+        <p className="relative mt-1 text-xs text-subtle">
+          ≈ {formatUSD(diferenciaAbs, dolarOficial)} (dólar oficial)
+        </p>
+      )}
 
       {!alDia && (
         <div className="relative mt-4">
