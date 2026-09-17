@@ -1,8 +1,12 @@
 import { supabase } from "./supabaseClient";
 import {
   CategoriaRow,
+  Cuenta,
+  CuentaInput,
   Hogar,
   Ingreso,
+  Liquidacion,
+  LiquidacionInput,
   Movimiento,
   MovimientoInput,
   Perfil,
@@ -147,6 +151,14 @@ export async function obtenerIngresosMes(mes: string): Promise<Ingreso[]> {
   return (data ?? []) as Ingreso[];
 }
 
+// Todos los ingresos de todos los meses (para el balance general, que
+// arrastra entre meses y necesita el % de aporte de cada mes pasado).
+export async function obtenerIngresos(): Promise<Ingreso[]> {
+  const { data, error } = await supabase.from("ingresos").select("*");
+  if (error) throw error;
+  return (data ?? []) as Ingreso[];
+}
+
 export async function guardarIngreso(
   hogarId: string,
   mes: string,
@@ -222,5 +234,74 @@ export async function guardarPresupuesto(
 
 export async function eliminarPresupuesto(id: string): Promise<void> {
   const { error } = await supabase.from("presupuestos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Cuentas (privadas, por perfil) ──────────────────────────────────────
+
+export async function obtenerMisCuentas(): Promise<Cuenta[]> {
+  const { data, error } = await supabase
+    .from("cuentas")
+    .select("*")
+    .order("creado_en", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as Cuenta[];
+}
+
+export async function crearCuenta(input: CuentaInput): Promise<Cuenta> {
+  const { data, error } = await supabase
+    .from("cuentas")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Cuenta;
+}
+
+export async function actualizarCuenta(
+  id: string,
+  cambios: Partial<CuentaInput>
+): Promise<Cuenta> {
+  const { data, error } = await supabase
+    .from("cuentas")
+    .update(cambios)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Cuenta;
+}
+
+export async function eliminarCuenta(id: string): Promise<void> {
+  const { error } = await supabase.from("cuentas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ── Liquidaciones (pagos entre integrantes del hogar) ──────────────────
+
+export async function obtenerLiquidaciones(): Promise<Liquidacion[]> {
+  const { data, error } = await supabase
+    .from("liquidaciones")
+    .select("*")
+    .order("fecha", { ascending: false })
+    .order("creado_en", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Liquidacion[];
+}
+
+export async function crearLiquidacion(
+  input: LiquidacionInput
+): Promise<Liquidacion> {
+  const { data, error } = await supabase
+    .from("liquidaciones")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Liquidacion;
+}
+
+export async function eliminarLiquidacion(id: string): Promise<void> {
+  const { error } = await supabase.from("liquidaciones").delete().eq("id", id);
   if (error) throw error;
 }

@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useIngresosMes } from "@/lib/useIngresosMes";
+import { useIngresos } from "@/lib/useIngresos";
+import { useLiquidaciones } from "@/lib/useLiquidaciones";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
 import {
+  calcularBalanceGeneral,
   calcularMisGastos,
   calcularReparto,
   mapaPresupuestos,
@@ -27,6 +30,8 @@ export default function DashboardPage() {
   const mes = mesActual();
   const { movimientos, cargando, error } = useMovimientos();
   const { ingresos } = useIngresosMes(mes);
+  const { ingresos: ingresosTodos } = useIngresos();
+  const { liquidaciones, recargar: recargarLiquidaciones } = useLiquidaciones();
   const { categorias } = useCategorias();
   const { presupuestos } = usePresupuestos(mes);
   const { perfiles } = usePerfilesHogar();
@@ -39,6 +44,13 @@ export default function DashboardPage() {
   const reparto = useMemo(
     () => calcularReparto(perfiles, ingresos, movimientosMes),
     [perfiles, ingresos, movimientosMes]
+  );
+
+  // Balance general: a diferencia de "reparto" (solo este mes), arrastra
+  // entre meses y descuenta las liquidaciones ya registradas.
+  const balance = useMemo(
+    () => calcularBalanceGeneral(perfiles, ingresosTodos, movimientos, liquidaciones),
+    [perfiles, ingresosTodos, movimientos, liquidaciones]
   );
 
   // Lo que ve ESTE usuario: los gastos personales del otro nunca aparecen
@@ -101,7 +113,14 @@ export default function DashboardPage() {
             </p>
           )}
 
-          {reparto.personas.length >= 2 && <DebtCard reparto={reparto} />}
+          {balance.personas.length >= 2 && (
+            <DebtCard
+              balance={balance}
+              perfiles={perfiles}
+              liquidaciones={liquidaciones}
+              onLiquidado={recargarLiquidaciones}
+            />
+          )}
 
           <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">
@@ -132,6 +151,14 @@ export default function DashboardPage() {
                     {formatMonto(misGastos.personal)}
                   </span>
                 </div>
+                {misGastos.paraOtroRecibido > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted">Pagados por el otro (100% tuyos)</span>
+                    <span className="font-semibold text-foreground">
+                      {formatMonto(misGastos.paraOtroRecibido)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Tu parte de lo compartido</span>
                   <span className="font-semibold text-foreground">

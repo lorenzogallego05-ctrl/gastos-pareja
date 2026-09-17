@@ -31,6 +31,12 @@ export interface CategoriaRow {
   creado_en: string;
 }
 
+// personal: solo lo ve/cuenta quien lo pagó.
+// compartido: se reparte proporcional al % de ingresos de cada uno.
+// para_otro: pagó una persona, pero es 100% gasto de otra (esa persona
+// debe el monto entero, no se reparte por porcentaje).
+export type ModoGasto = "personal" | "compartido" | "para_otro";
+
 export interface Movimiento {
   id: string;
   hogar_id: string;
@@ -39,7 +45,9 @@ export interface Movimiento {
   categoria: Categoria;
   monto: number;
   pagado_por: string; // perfil.id de quien pagó
-  compartido: boolean;
+  modo: ModoGasto;
+  beneficiario_id: string | null; // perfil.id, solo si modo === "para_otro"
+  cuenta_id: string | null;
   notas: string | null;
   creado_en: string;
 }
@@ -62,3 +70,36 @@ export interface Presupuesto {
   categoria: Categoria;
   monto: number;
 }
+
+// Una cuenta/medio de pago es privada: solo la ve y administra el
+// perfil dueño (no el resto del hogar). "credito" acumula consumo del
+// mes; "debito" lleva un saldo que se descuenta con cada gasto propio.
+export type TipoCuenta = "debito" | "credito";
+
+export interface Cuenta {
+  id: string;
+  perfil_id: string;
+  entidad: string; // clave del catálogo (ver lib/entidades.ts) o "otro"
+  nombre: string;
+  tipo: TipoCuenta;
+  icono: string | null; // emoji, solo si entidad === "otro"
+  saldo_base: number;
+  saldo_base_fecha: string;
+  creado_en: string;
+}
+
+export type CuentaInput = Omit<Cuenta, "id" | "creado_en">;
+
+// Un pago entre dos integrantes del hogar (para saldar deuda).
+export interface Liquidacion {
+  id: string;
+  hogar_id: string;
+  de_perfil_id: string;
+  a_perfil_id: string;
+  monto: number;
+  fecha: string;
+  nota: string | null;
+  creado_en: string;
+}
+
+export type LiquidacionInput = Omit<Liquidacion, "id" | "creado_en">;

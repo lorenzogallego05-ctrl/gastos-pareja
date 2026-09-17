@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
+import { useCuentas } from "@/lib/useCuentas";
 import { useToast } from "@/lib/useToast";
 import { crearMovimiento, actualizarMovimiento, obtenerMovimiento } from "@/lib/api";
-import { Categoria } from "@/lib/types";
+import { Categoria, ModoGasto } from "@/lib/types";
 import { fechaHoy } from "@/lib/formato";
 import CategoryChips from "@/components/CategoryChips";
+import EntidadLogo from "@/components/EntidadLogo";
+import SegmentedControl from "@/components/SegmentedControl";
 
 export default function NuevoForm() {
   const router = useRouter();
@@ -16,17 +19,24 @@ export default function NuevoForm() {
   const idEditar = searchParams.get("id");
   const { perfil, hogar } = useAuth();
   const { perfiles } = usePerfilesHogar();
+  const { cuentas } = useCuentas();
   const { mostrarToast } = useToast();
 
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [pagadoPor, setPagadoPor] = useState<string>(perfil?.id ?? "");
-  const [compartido, setCompartido] = useState(perfiles.length > 1);
+  const [modo, setModo] = useState<ModoGasto>(perfiles.length > 1 ? "compartido" : "personal");
+  const [cuentaId, setCuentaId] = useState<string | null>(null);
   const [fecha, setFecha] = useState(fechaHoy());
   const [guardando, setGuardando] = useState(false);
   const [cargandoEdicion, setCargandoEdicion] = useState(!!idEditar);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const otroPerfil = useMemo(
+    () => perfiles.find((p) => p.id !== pagadoPor) ?? null,
+    [perfiles, pagadoPor]
+  );
 
   useEffect(() => {
     if (!idEditar) return;
@@ -37,7 +47,8 @@ export default function NuevoForm() {
         setDescripcion(m.descripcion);
         setCategoria(m.categoria);
         setPagadoPor(m.pagado_por);
-        setCompartido(m.compartido);
+        setModo(m.modo);
+        setCuentaId(m.cuenta_id);
         setFecha(m.fecha);
       })
       .finally(() => setCargandoEdicion(false));
@@ -64,6 +75,11 @@ export default function NuevoForm() {
       setErrorMsg("No se pudo identificar tu hogar. Volvé a iniciar sesión.");
       return;
     }
+    const modoFinal: ModoGasto = perfiles.length > 1 ? modo : "personal";
+    if (modoFinal === "para_otro" && !otroPerfil) {
+      setErrorMsg("No se pudo identificar a la otra persona del hogar.");
+      return;
+    }
 
     setGuardando(true);
     try {
@@ -74,7 +90,11 @@ export default function NuevoForm() {
         categoria,
         monto: montoNum,
         pagado_por: pagadoPor,
-        compartido: perfiles.length > 1 ? compartido : false,
+        modo: modoFinal,
+        beneficiario_id: modoFinal === "para_otro" ? otroPerfil!.id : null,
+        // Solo tiene sentido si el gasto lo pagaste vos: tus cuentas son
+        // privadas, no se pueden ver ni elegir las de la otra persona.
+        cuenta_id: pagadoPor === perfil?.id ? cuentaId : null,
         notas: null,
       };
       if (idEditar) {
@@ -184,25 +204,60 @@ export default function NuevoForm() {
         )}
 
         {perfiles.length > 1 && (
-          <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
-            <span className="text-base font-medium text-foreground">
-              Gasto compartido
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={compartido}
-              onClick={() => setCompartido((v) => !v)}
-              className={`relative h-8 w-14 rounded-full transition-colors ${
-                compartido ? "bg-accent" : "bg-border"
-              }`}
-            >
-              <span
-                className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                  compartido ? "translate-x-7" : "translate-x-1"
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted">
+              ¿De quién es este gasto?
+            </label>
+            <SegmentedControl<ModoGasto>
+              value={modo}
+              onChange={setModo}
+              options={[
+                { value: "personal", label: "Mío" },
+                { value: "compartido", label: "Compartido" },
+                {
+                  value: "para_otro",
+                  label: otroPerfil ? `100% de ${otroPerfil.nombre}` : "100% del otro",
+                },
+              ]}
+            />
+            {modo === "para_otro" && otroPerfil && (
+              <p className="mt-2 text-xs text-subtle">
+                {otroPerfil.nombre} te va a deber el monto entero (no se reparte por
+                porcentaje).
+              </p>
+            )}
+          </div>
+        )}
+
+        {pagadoPor === perfil?.id && cuentas.length > 0 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted">
+              Cuenta (opcional)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setCuentaId(null)}
+                className={`flex min-h-[44px] items-center rounded-full px-3.5 text-sm font-medium ${
+                  cuentaId === null ? "bg-accent text-white shadow-sm" : "glass text-muted"
                 }`}
-              />
-            </button>
+              >
+                Sin especificar
+              </button>
+              {cuentas.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCuentaId(c.id)}
+                  className={`flex min-h-[44px] items-center gap-2 rounded-full py-1 pl-1 pr-3.5 text-sm font-medium ${
+                    cuentaId === c.id ? "bg-accent text-white shadow-sm" : "glass text-muted"
+                  }`}
+                >
+                  <EntidadLogo entidad={c.entidad} icono={c.icono} tamano={28} />
+                  {c.nombre}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

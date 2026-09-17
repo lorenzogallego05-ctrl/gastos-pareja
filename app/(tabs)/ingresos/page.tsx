@@ -5,15 +5,31 @@ import { useIngresosMes } from "@/lib/useIngresosMes";
 import { useMovimientos } from "@/lib/useMovimientos";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
+import { useCuentas } from "@/lib/useCuentas";
 import { useAuth } from "@/lib/useAuth";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
-import { guardarIngreso, guardarPresupuesto } from "@/lib/api";
+import {
+  guardarIngreso,
+  guardarPresupuesto,
+  crearCuenta,
+  actualizarCuenta,
+  eliminarCuenta,
+} from "@/lib/api";
 import { useToast } from "@/lib/useToast";
-import { formatMes, formatMonto, mesActual } from "@/lib/formato";
-import { mapaPresupuestos, movimientosVisibles, totalesPorCategoria } from "@/lib/calculos";
+import { formatMes, formatMonto, mesActual, fechaHoy } from "@/lib/formato";
+import {
+  mapaPresupuestos,
+  movimientosVisibles,
+  totalesPorCategoria,
+  saldoCuenta,
+  consumoCuentaMes,
+} from "@/lib/calculos";
+import { Cuenta, TipoCuenta } from "@/lib/types";
+import { ENTIDADES_ORDEN, EMOJIS_CUENTA, infoDeEntidad } from "@/lib/entidades";
 import SegmentedControl from "@/components/SegmentedControl";
+import EntidadLogo from "@/components/EntidadLogo";
 
-type Vista = "ingresos" | "presupuestos";
+type Vista = "ingresos" | "presupuestos" | "cuentas";
 
 const COLORES_PERSONA = ["var(--accent)", "var(--pink)"];
 
@@ -48,10 +64,13 @@ export default function IngresosPage() {
         options={[
           { value: "ingresos", label: "Ingresos" },
           { value: "presupuestos", label: "Presupuestos" },
+          { value: "cuentas", label: "Cuentas" },
         ]}
       />
 
-      {vista === "ingresos" ? <SeccionIngresos mes={mes} /> : <SeccionPresupuestos mes={mes} />}
+      {vista === "ingresos" && <SeccionIngresos mes={mes} />}
+      {vista === "presupuestos" && <SeccionPresupuestos mes={mes} />}
+      {vista === "cuentas" && <SeccionCuentas mes={mes} />}
     </div>
   );
 }
@@ -294,6 +313,287 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
         {guardando ? "Guardando..." : "Guardar presupuestos"}
       </button>
     </div>
+  );
+}
+
+function SeccionCuentas({ mes }: { mes: string }) {
+  const { cuentas, cargando } = useCuentas();
+  const { movimientos } = useMovimientos();
+
+  const [creando, setCreando] = useState(false);
+  const [editando, setEditando] = useState<Cuenta | null>(null);
+
+  if (cargando) return <p className="text-sm text-subtle">Cargando...</p>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-subtle">
+        Tus cuentas son privadas: el otro integrante del hogar no las ve.
+      </p>
+
+      {cuentas.length === 0 && !creando && (
+        <p className="text-sm text-subtle">Todavía no agregaste ninguna cuenta.</p>
+      )}
+
+      <div className="flex flex-col gap-3">
+        {cuentas.map((c) => {
+          const monto =
+            c.tipo === "debito"
+              ? saldoCuenta(c, movimientos)
+              : consumoCuentaMes(c, movimientos, mes);
+          const negativo = c.tipo === "debito" && monto < 0;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setEditando(c);
+                setCreando(false);
+              }}
+              className="glass flex items-center gap-3 rounded-2xl p-3 text-left"
+            >
+              <EntidadLogo entidad={c.entidad} icono={c.icono} tamano={40} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-foreground">{c.nombre}</p>
+                <p className="text-xs text-subtle">
+                  {c.tipo === "debito" ? "Saldo actual" : `Consumido en ${formatMes(mes)}`}
+                </p>
+              </div>
+              <span
+                className={`font-semibold whitespace-nowrap ${negativo ? "text-danger" : "text-foreground"}`}
+              >
+                {formatMonto(monto)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {!creando && !editando && (
+        <button
+          type="button"
+          onClick={() => setCreando(true)}
+          className="flex min-h-[52px] items-center justify-center rounded-full border border-dashed border-accent/60 text-sm font-semibold text-accent"
+        >
+          + Nueva cuenta
+        </button>
+      )}
+
+      {(creando || editando) && (
+        <FormCuenta
+          cuenta={editando}
+          onCerrar={() => {
+            setCreando(false);
+            setEditando(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function FormCuenta({
+  cuenta,
+  onCerrar,
+}: {
+  cuenta: Cuenta | null;
+  onCerrar: () => void;
+}) {
+  const { perfil } = useAuth();
+  const { mostrarToast } = useToast();
+
+  const [entidad, setEntidad] = useState(cuenta?.entidad ?? "bbva");
+  const [nombre, setNombre] = useState(cuenta?.nombre ?? infoDeEntidad("bbva").nombre);
+  const [tipo, setTipo] = useState<TipoCuenta>(cuenta?.tipo ?? "debito");
+  const [icono, setIcono] = useState(cuenta?.icono ?? EMOJIS_CUENTA[0]);
+  const [saldo, setSaldo] = useState(cuenta ? String(cuenta.saldo_base) : "0");
+  const [guardando, setGuardando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  function elegirEntidad(key: string) {
+    // Si todavía no escribió un nombre propio (sigue siendo el sugerido
+    // de la entidad anterior, o está vacío), le sugerimos el de la
+    // entidad nueva. Si ya lo personalizó, lo dejamos como está.
+    const eraSugerido = !nombre.trim() || nombre === infoDeEntidad(entidad).nombre;
+    setEntidad(key);
+    if (eraSugerido) {
+      setNombre(key === "otro" ? "" : infoDeEntidad(key).nombre);
+    }
+  }
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMsg(null);
+    if (!nombre.trim()) {
+      setErrorMsg("Ponele un nombre a la cuenta");
+      return;
+    }
+    if (!perfil) return;
+
+    setGuardando(true);
+    try {
+      const saldoNum = tipo === "debito" ? Number(saldo.replace(",", ".")) || 0 : 0;
+      if (cuenta) {
+        const cambiaSaldo = tipo === "debito" && saldoNum !== cuenta.saldo_base;
+        await actualizarCuenta(cuenta.id, {
+          entidad,
+          nombre: nombre.trim(),
+          tipo,
+          icono: entidad === "otro" ? icono : null,
+          saldo_base: saldoNum,
+          ...(cambiaSaldo ? { saldo_base_fecha: fechaHoy() } : {}),
+        });
+        mostrarToast("Cuenta actualizada");
+      } else {
+        await crearCuenta({
+          perfil_id: perfil.id,
+          entidad,
+          nombre: nombre.trim(),
+          tipo,
+          icono: entidad === "otro" ? icono : null,
+          saldo_base: saldoNum,
+          saldo_base_fecha: fechaHoy(),
+        });
+        mostrarToast("Cuenta creada");
+      }
+      onCerrar();
+    } catch {
+      setErrorMsg("No se pudo guardar. Probá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function borrar() {
+    if (!cuenta) return;
+    if (!window.confirm(`¿Borrar "${cuenta.nombre}"? Los gastos que le asignaste quedan, solo pierden la etiqueta.`)) return;
+    setBorrando(true);
+    try {
+      await eliminarCuenta(cuenta.id);
+      mostrarToast("Cuenta borrada");
+      onCerrar();
+    } catch {
+      mostrarToast("No se pudo borrar la cuenta");
+      setBorrando(false);
+    }
+  }
+
+  return (
+    <form onSubmit={guardar} className="glass flex flex-col gap-4 rounded-[28px] p-5">
+      <div>
+        <label className="mb-2 block text-sm font-medium text-muted">Entidad</label>
+        <div className="flex flex-wrap gap-2">
+          {ENTIDADES_ORDEN.map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => elegirEntidad(key)}
+              className={`rounded-2xl p-1 ${entidad === key ? "ring-2 ring-accent" : ""}`}
+              aria-label={infoDeEntidad(key).nombre}
+              title={infoDeEntidad(key).nombre}
+            >
+              <EntidadLogo entidad={key} icono={icono} tamano={40} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {entidad === "otro" && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-muted">Ícono</label>
+          <div className="flex flex-wrap gap-2">
+            {EMOJIS_CUENTA.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setIcono(e)}
+                className={`flex h-10 w-10 items-center justify-center rounded-full text-lg ${
+                  icono === e ? "bg-accent/20 ring-2 ring-accent" : "bg-background"
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="mb-1 block text-sm font-medium text-muted">Nombre</label>
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej: BBVA débito"
+          className="min-h-[44px] w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-accent"
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-muted">Tipo</label>
+        <SegmentedControl<TipoCuenta>
+          value={tipo}
+          onChange={setTipo}
+          options={[
+            { value: "debito", label: "Débito / billetera" },
+            { value: "credito", label: "Crédito" },
+          ]}
+        />
+      </div>
+
+      {tipo === "debito" && (
+        <div>
+          <label className="mb-1 block text-sm font-medium text-muted">
+            Saldo actual
+          </label>
+          <div className="flex items-center rounded-xl border border-border bg-background px-3">
+            <span className="text-lg font-bold text-subtle">$</span>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={saldo}
+              onChange={(e) => setSaldo(e.target.value.replace(/[^0-9.,]/g, ""))}
+              placeholder="0"
+              className="w-full bg-transparent px-2 py-2 text-lg font-semibold text-foreground outline-none"
+            />
+          </div>
+          <p className="mt-1 text-xs text-subtle">
+            Cargá el saldo real de hoy. A partir de ahora se va a ir descontando
+            solo con cada gasto que le asignes a esta cuenta.
+          </p>
+        </div>
+      )}
+
+      {errorMsg && <p className="text-sm font-medium text-danger">{errorMsg}</p>}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onCerrar}
+          className="min-h-[44px] flex-1 rounded-full border border-border text-sm font-semibold text-muted"
+        >
+          Cancelar
+        </button>
+        {cuenta && (
+          <button
+            type="button"
+            onClick={borrar}
+            disabled={borrando}
+            className="min-h-[44px] flex-1 rounded-full border border-danger/40 text-sm font-semibold text-danger disabled:opacity-50"
+          >
+            {borrando ? "Borrando..." : "Borrar"}
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={guardando}
+          className="min-h-[44px] flex-1 rounded-full bg-accent text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {guardando ? "Guardando..." : "Guardar"}
+        </button>
+      </div>
+    </form>
   );
 }
 

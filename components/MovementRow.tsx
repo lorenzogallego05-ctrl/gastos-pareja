@@ -19,6 +19,9 @@ export default function MovementRow({
 }) {
   const nombrePagador =
     perfiles.find((p) => p.id === movimiento.pagado_por)?.nombre ?? "—";
+  const nombreBeneficiario = perfiles.find(
+    (p) => p.id === movimiento.beneficiario_id
+  )?.nombre;
   const router = useRouter();
   const { mostrarToast } = useToast();
   const [eliminando, setEliminando] = useState(false);
@@ -61,7 +64,10 @@ export default function MovementRow({
         <p className="truncate text-xs text-subtle">
           {formatFechaCorta(movimiento.fecha)} · {movimiento.categoria} ·{" "}
           {nombrePagador}
-          {!movimiento.compartido && " · personal"}
+          {movimiento.modo === "personal" && " · personal"}
+          {movimiento.modo === "para_otro" &&
+            nombreBeneficiario &&
+            ` · 100% de ${nombreBeneficiario}`}
         </p>
       </div>
       <span className="whitespace-nowrap font-semibold text-foreground">
