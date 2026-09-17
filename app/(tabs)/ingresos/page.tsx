@@ -262,7 +262,7 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
                       }))
                     }
                     placeholder="Sin límite"
-                    className="min-h-[36px] w-24 bg-transparent py-1 text-right text-sm font-semibold text-foreground outline-none"
+                    className="min-h-[36px] w-24 bg-transparent py-1 text-right text-base font-semibold text-foreground outline-none"
                   />
                 </div>
               </div>

@@ -42,8 +42,11 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // No se bloquea el zoom (maximumScale/userScalable): en iOS, una PWA
+  // instalada en modo standalone con el zoom bloqueado a veces no logra
+  // levantar el teclado al tocar un input. Como los campos ya usan letra
+  // de 16px (text-base), Safari no hace zoom automático al enfocarlos,
+  // así que no hace falta bloquearlo a mano.
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#faf6f0" },
