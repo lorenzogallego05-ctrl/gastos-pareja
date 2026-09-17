@@ -41,6 +41,12 @@ export const ENTIDADES: Record<string, EntidadInfo> = {
     color: "#5b4fe9",
     ajuste: "cover",
   },
+  visa: {
+    nombre: "Visa",
+    logo: "/visa.png",
+    color: "#1434cb",
+    ajuste: "contain",
+  },
   otro: {
     nombre: "Otra",
     logo: null,
@@ -49,7 +55,15 @@ export const ENTIDADES: Record<string, EntidadInfo> = {
   },
 };
 
-export const ENTIDADES_ORDEN = ["bbva", "santander", "mercadopago", "uala", "personalpay", "otro"];
+export const ENTIDADES_ORDEN = [
+  "bbva",
+  "santander",
+  "mercadopago",
+  "uala",
+  "personalpay",
+  "visa",
+  "otro",
+];
 
 export function infoDeEntidad(entidad: string): EntidadInfo {
   return ENTIDADES[entidad] ?? ENTIDADES.otro;
