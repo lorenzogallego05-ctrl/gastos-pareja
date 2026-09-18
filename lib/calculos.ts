@@ -1,5 +1,13 @@
 import { formatMonto } from "./formato";
-import { Cuenta, Ingreso, Liquidacion, Movimiento, Perfil, Presupuesto } from "./types";
+import {
+  Cuenta,
+  GastoFijo,
+  Ingreso,
+  Liquidacion,
+  Movimiento,
+  Perfil,
+  Presupuesto,
+} from "./types";
 
 const TOLERANCIA = 1;
 
@@ -285,6 +293,62 @@ export function gastosFrecuentes(
       modo: g.ultimo.modo,
       veces: g.veces,
     }));
+}
+
+export interface FijoDelMes {
+  fijo: GastoFijo;
+  // El movimiento de este mes, si ya se confirmó.
+  movimiento: Movimiento | null;
+  // Lo que se pagó este mes si ya está cargado; si no, lo estimado.
+  monto: number;
+}
+
+export interface CompromisosDelMes {
+  fijos: FijoDelMes[];
+  cuotas: Movimiento[];
+  pendientes: number;
+  totalFijos: number;
+  totalCuotas: number;
+  total: number;
+}
+
+// Lo que el hogar tiene comprometido este mes: los gastos fijos (ya
+// confirmados o todavía pendientes) más las cuotas que caen en el mes.
+// Sirve para responder "¿cuánto ya está jugado antes de gastar nada?".
+export function compromisosDelMes(
+  fijos: GastoFijo[],
+  movimientos: Movimiento[],
+  mes: string
+): CompromisosDelMes {
+  const delMes = movimientos.filter((m) => m.fecha.startsWith(mes));
+
+  const fijosDelMes: FijoDelMes[] = fijos
+    .filter((f) => f.activo)
+    .map((f) => {
+      const movimiento = delMes.find((m) => m.gasto_fijo_id === f.id) ?? null;
+      return {
+        fijo: f,
+        movimiento,
+        monto: movimiento ? movimiento.monto : f.monto_estimado,
+      };
+    })
+    .sort((a, b) => (a.fijo.dia_del_mes ?? 99) - (b.fijo.dia_del_mes ?? 99));
+
+  // Las cuotas que ya se generaron para este mes (se crean todas juntas
+  // al cargar la compra, así que acá solo hay que juntarlas).
+  const cuotas = delMes.filter((m) => m.cuota_grupo_id !== null);
+
+  const totalFijos = fijosDelMes.reduce((sum, f) => sum + f.monto, 0);
+  const totalCuotas = cuotas.reduce((sum, m) => sum + m.monto, 0);
+
+  return {
+    fijos: fijosDelMes,
+    cuotas,
+    pendientes: fijosDelMes.filter((f) => !f.movimiento).length,
+    totalFijos,
+    totalCuotas,
+    total: totalFijos + totalCuotas,
+  };
 }
 
 export function mapaPresupuestos(

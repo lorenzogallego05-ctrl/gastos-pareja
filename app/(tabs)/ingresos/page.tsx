@@ -8,12 +8,16 @@ import { usePresupuestos } from "@/lib/usePresupuestos";
 import { useCuentas } from "@/lib/useCuentas";
 import { useAuth } from "@/lib/useAuth";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
+import { useGastosFijos } from "@/lib/useGastosFijos";
 import {
   guardarIngreso,
   guardarPresupuesto,
   crearCuenta,
   actualizarCuenta,
   eliminarCuenta,
+  crearGastoFijo,
+  actualizarGastoFijo,
+  eliminarGastoFijo,
 } from "@/lib/api";
 import { useToast } from "@/lib/useToast";
 import { formatMes, formatMonto, mesActual, fechaHoy } from "@/lib/formato";
@@ -23,14 +27,17 @@ import {
   totalesPorCategoria,
   saldoCuenta,
   consumoCuentaMes,
+  compromisosDelMes,
 } from "@/lib/calculos";
-import { Cuenta, TipoCuenta } from "@/lib/types";
+import { Cuenta, GastoFijo, Perfil, TipoCuenta } from "@/lib/types";
 import { ENTIDADES_ORDEN, EMOJIS_CUENTA, infoDeEntidad } from "@/lib/entidades";
 import SegmentedControl from "@/components/SegmentedControl";
 import EntidadLogo from "@/components/EntidadLogo";
 import MoneyInput from "@/components/MoneyInput";
+import CategoryChips from "@/components/CategoryChips";
+import CompromisosCard from "@/components/CompromisosCard";
 
-type Vista = "ingresos" | "presupuestos" | "cuentas";
+type Vista = "ingresos" | "presupuestos" | "cuentas" | "fijos";
 
 const COLORES_PERSONA = ["var(--accent)", "var(--pink)"];
 
@@ -45,7 +52,7 @@ export default function IngresosPage() {
           Finanzas
         </h1>
         <p className="text-sm text-subtle">
-          Ingresos, % de reparto y presupuestos por categoría.
+          Ingresos, presupuestos, cuentas y gastos fijos.
         </p>
       </header>
 
@@ -64,14 +71,16 @@ export default function IngresosPage() {
         onChange={setVista}
         options={[
           { value: "ingresos", label: "Ingresos" },
-          { value: "presupuestos", label: "Presupuestos" },
+          { value: "presupuestos", label: "Presup." },
           { value: "cuentas", label: "Cuentas" },
+          { value: "fijos", label: "Fijos" },
         ]}
       />
 
       {vista === "ingresos" && <SeccionIngresos mes={mes} />}
       {vista === "presupuestos" && <SeccionPresupuestos mes={mes} />}
       {vista === "cuentas" && <SeccionCuentas mes={mes} />}
+      {vista === "fijos" && <SeccionFijos mes={mes} />}
     </div>
   );
 }
@@ -613,5 +622,325 @@ function PorcentajeBar({
         />
       </div>
     </div>
+  );
+}
+
+function SeccionFijos({ mes }: { mes: string }) {
+  const { gastosFijos, cargando } = useGastosFijos();
+  const { movimientos } = useMovimientos();
+  const { perfiles } = usePerfilesHogar();
+
+  const [creando, setCreando] = useState(false);
+  const [editando, setEditando] = useState<GastoFijo | null>(null);
+
+  const compromisos = useMemo(
+    () => compromisosDelMes(gastosFijos, movimientos, mes),
+    [gastosFijos, movimientos, mes]
+  );
+
+  if (cargando) return <p className="text-sm text-subtle">Cargando...</p>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-subtle">
+        Los gastos que se repiten todos los meses. No se cargan solos: cada
+        mes te aparecen como pendientes para que confirmes cuánto salió.
+      </p>
+
+      {gastosFijos.length === 0 && !creando && (
+        <p className="text-sm text-subtle">Todavía no cargaste ningún gasto fijo.</p>
+      )}
+
+      {gastosFijos.length > 0 && (
+        <CompromisosCard
+          compromisos={compromisos}
+          perfiles={perfiles}
+          mostrarPendientes={false}
+        />
+      )}
+
+      <div className="flex flex-col gap-2">
+        {gastosFijos.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => {
+              setEditando(g);
+              setCreando(false);
+            }}
+            className="glass flex items-center gap-3 rounded-2xl p-3 text-left"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-medium text-foreground">{g.descripcion}</p>
+              <p className="text-xs text-subtle">
+                {g.categoria}
+                {g.dia_del_mes ? ` · vence el ${g.dia_del_mes}` : ""}
+                {g.modo === "personal" ? " · personal" : " · compartido"}
+              </p>
+            </div>
+            <span className="shrink-0 font-semibold whitespace-nowrap text-foreground">
+              {formatMonto(g.monto_estimado)}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {!creando && !editando && (
+        <button
+          type="button"
+          onClick={() => setCreando(true)}
+          className="mr-20 flex min-h-[52px] items-center justify-center rounded-full border border-dashed border-accent/60 text-sm font-semibold text-accent"
+        >
+          + Nuevo gasto fijo
+        </button>
+      )}
+
+      {(creando || editando) && (
+        <FormGastoFijo
+          gastoFijo={editando}
+          perfiles={perfiles}
+          onCerrar={() => {
+            setCreando(false);
+            setEditando(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function FormGastoFijo({
+  gastoFijo,
+  perfiles,
+  onCerrar,
+}: {
+  gastoFijo: GastoFijo | null;
+  // Vienen por prop, no por hook: este formulario se muestra dentro de
+  // SeccionFijos, que ya los pidió. Dos usos simultáneos del mismo hook
+  // chocan en el canal de tiempo real y tiran la pantalla.
+  perfiles: Perfil[];
+  onCerrar: () => void;
+}) {
+  const { perfil, hogar } = useAuth();
+  const { cuentas } = useCuentas();
+  const { mostrarToast } = useToast();
+
+  const [descripcion, setDescripcion] = useState(gastoFijo?.descripcion ?? "");
+  const [categoria, setCategoria] = useState<string | null>(
+    gastoFijo?.categoria ?? null
+  );
+  const [monto, setMonto] = useState(
+    gastoFijo ? String(gastoFijo.monto_estimado) : ""
+  );
+  const [dia, setDia] = useState(
+    gastoFijo?.dia_del_mes ? String(gastoFijo.dia_del_mes) : ""
+  );
+  const [modo, setModo] = useState<"personal" | "compartido">(
+    gastoFijo?.modo ?? "compartido"
+  );
+  const [cuentaId, setCuentaId] = useState<string | null>(
+    gastoFijo?.cuenta_id ?? null
+  );
+  const [guardando, setGuardando] = useState(false);
+  const [borrando, setBorrando] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMsg(null);
+    if (!descripcion.trim()) {
+      setErrorMsg("Ponele un nombre al gasto fijo");
+      return;
+    }
+    if (!categoria) {
+      setErrorMsg("Elegí una categoría");
+      return;
+    }
+    if (!hogar || !perfil) return;
+
+    const montoNum = Number(monto.replace(/\./g, "").replace(",", ".")) || 0;
+    const diaNum = dia ? Number(dia) : null;
+    if (diaNum !== null && (diaNum < 1 || diaNum > 31)) {
+      setErrorMsg("El día tiene que estar entre 1 y 31");
+      return;
+    }
+
+    setGuardando(true);
+    try {
+      const datos = {
+        hogar_id: hogar.id,
+        descripcion: descripcion.trim(),
+        categoria,
+        monto_estimado: montoNum,
+        dia_del_mes: diaNum,
+        modo,
+        pagado_por: gastoFijo?.pagado_por ?? perfil.id,
+        cuenta_id: cuentaId,
+        activo: true,
+      };
+      if (gastoFijo) {
+        await actualizarGastoFijo(gastoFijo.id, datos);
+        mostrarToast("Gasto fijo actualizado");
+      } else {
+        await crearGastoFijo(datos);
+        mostrarToast("Gasto fijo creado");
+      }
+      onCerrar();
+    } catch {
+      setErrorMsg("No se pudo guardar. Probá de nuevo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function borrar() {
+    if (!gastoFijo) return;
+    if (
+      !window.confirm(
+        `¿Borrar "${gastoFijo.descripcion}"? Los gastos que ya cargaste quedan, solo deja de aparecer como fijo.`
+      )
+    )
+      return;
+    setBorrando(true);
+    try {
+      await eliminarGastoFijo(gastoFijo.id);
+      mostrarToast("Gasto fijo borrado");
+      onCerrar();
+    } catch {
+      mostrarToast("No se pudo borrar");
+      setBorrando(false);
+    }
+  }
+
+  const misCuentas = cuentas.filter((c) => c.perfil_id === perfil?.id);
+
+  return (
+    <form onSubmit={guardar} className="glass flex flex-col gap-4 rounded-[28px] p-5">
+      <div>
+        <label className="mb-1 block text-sm font-medium text-muted">Nombre</label>
+        <input
+          type="text"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          placeholder="Ej: Expensas"
+          className="min-h-[44px] w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-accent"
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-muted">Categoría</label>
+        <CategoryChips value={categoria} onChange={setCategoria} />
+      </div>
+
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className="mb-1 block text-sm font-medium text-muted">
+            Monto habitual
+          </label>
+          <div className="flex items-center rounded-xl border border-border bg-background px-3">
+            <span className="text-base font-bold text-subtle">$</span>
+            <MoneyInput
+              value={monto}
+              onChange={setMonto}
+              className="w-full bg-transparent px-2 py-2 text-base font-semibold text-foreground outline-none"
+            />
+          </div>
+        </div>
+        <div className="w-24">
+          <label className="mb-1 block text-sm font-medium text-muted">Día</label>
+          <input
+            type="number"
+            min={1}
+            max={31}
+            value={dia}
+            onChange={(e) => setDia(e.target.value)}
+            placeholder="10"
+            className="min-h-[44px] w-full rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none focus:border-accent"
+          />
+        </div>
+      </div>
+
+      {perfiles.length > 1 && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-muted">
+            ¿De quién es?
+          </label>
+          <SegmentedControl<"personal" | "compartido">
+            value={modo}
+            onChange={setModo}
+            options={[
+              { value: "personal", label: "Mío" },
+              { value: "compartido", label: "Compartido" },
+            ]}
+          />
+        </div>
+      )}
+
+      {misCuentas.length > 0 && (
+        <div>
+          <label className="mb-2 block text-sm font-medium text-muted">
+            Cuenta (opcional)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setCuentaId(null)}
+              className={`min-h-[44px] rounded-2xl px-4 text-sm font-medium ${
+                cuentaId === null
+                  ? "bg-accent text-white"
+                  : "border border-border text-foreground"
+              }`}
+            >
+              Sin especificar
+            </button>
+            {misCuentas.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCuentaId(c.id)}
+                className={`flex min-h-[44px] items-center gap-2 rounded-2xl px-3 text-sm font-medium ${
+                  cuentaId === c.id
+                    ? "bg-accent text-white"
+                    : "border border-border text-foreground"
+                }`}
+              >
+                <EntidadLogo entidad={c.entidad} icono={c.icono} tamano={24} />
+                {c.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {errorMsg && <p className="text-sm font-medium text-danger">{errorMsg}</p>}
+
+      <div className="mr-20 flex gap-2">
+        <button
+          type="button"
+          onClick={onCerrar}
+          className="min-h-[44px] flex-1 rounded-full border border-border text-sm font-semibold text-muted"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={guardando}
+          className="min-h-[44px] flex-1 rounded-full bg-accent text-sm font-semibold text-white disabled:opacity-50"
+        >
+          {guardando ? "Guardando..." : "Guardar"}
+        </button>
+      </div>
+
+      {gastoFijo && (
+        <button
+          type="button"
+          onClick={borrar}
+          disabled={borrando}
+          className="min-h-[40px] text-sm font-semibold text-danger disabled:opacity-50"
+        >
+          {borrando ? "Borrando..." : "Borrar gasto fijo"}
+        </button>
+      )}
+    </form>
   );
 }

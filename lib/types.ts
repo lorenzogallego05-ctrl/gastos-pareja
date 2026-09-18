@@ -53,6 +53,8 @@ export interface Movimiento {
   cuota_actual: number | null;
   cuota_total: number | null;
   cuota_grupo_id: string | null;
+  // Si salió de confirmar un gasto fijo del mes, queda apuntando a él.
+  gasto_fijo_id: string | null;
   notas: string | null;
   creado_en: string;
 }
@@ -112,3 +114,23 @@ export interface Liquidacion {
 }
 
 export type LiquidacionInput = Omit<Liquidacion, "id" | "creado_en">;
+
+// Un gasto que se repite todos los meses (alquiler, expensas, internet,
+// suscripciones). No es un movimiento: es la plantilla. Cada mes aparece
+// como pendiente y recién al confirmarlo se crea el movimiento real, con
+// el monto que de verdad salió ese mes.
+export interface GastoFijo {
+  id: string;
+  hogar_id: string;
+  descripcion: string;
+  categoria: Categoria;
+  monto_estimado: number;
+  dia_del_mes: number | null;
+  modo: "personal" | "compartido";
+  pagado_por: string;
+  cuenta_id: string | null;
+  activo: boolean;
+  creado_en: string;
+}
+
+export type GastoFijoInput = Omit<GastoFijo, "id" | "creado_en">;

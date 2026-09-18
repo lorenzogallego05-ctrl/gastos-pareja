@@ -57,6 +57,10 @@ export default function NuevoForm() {
     total: number;
     grupoId: string;
   } | null>(null);
+  // Si este movimiento salió de confirmar un gasto fijo, hay que
+  // conservar el vínculo al editarlo: si se pierde, ese mes vuelve a
+  // figurar como pendiente aunque ya esté pago.
+  const [gastoFijoOriginal, setGastoFijoOriginal] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [cargandoEdicion, setCargandoEdicion] = useState(!!idEditar);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -96,6 +100,7 @@ export default function NuevoForm() {
         setModoElegido(m.modo);
         setCuentaId(m.cuenta_id);
         setFecha(m.fecha);
+        setGastoFijoOriginal(m.gasto_fijo_id);
         if (m.cuota_actual && m.cuota_total && m.cuota_grupo_id) {
           setCuotaOriginal({
             actual: m.cuota_actual,
@@ -208,6 +213,7 @@ export default function NuevoForm() {
         cuota_actual: cuotaOriginal?.actual ?? null,
         cuota_total: cuotaOriginal?.total ?? null,
         cuota_grupo_id: cuotaOriginal?.grupoId ?? null,
+        gasto_fijo_id: gastoFijoOriginal,
         notas: null,
       };
       if (idEditar) {

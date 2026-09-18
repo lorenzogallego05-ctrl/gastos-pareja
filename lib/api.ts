@@ -4,6 +4,8 @@ import {
   CategoriaRow,
   Cuenta,
   CuentaInput,
+  GastoFijo,
+  GastoFijoInput,
   Hogar,
   Ingreso,
   Liquidacion,
@@ -390,6 +392,76 @@ export async function actualizarCuenta(
 export async function eliminarCuenta(id: string): Promise<void> {
   const { error } = await supabase.from("cuentas").delete().eq("id", id);
   if (error) throw error;
+}
+
+// ── Gastos fijos (plantillas de lo que se repite cada mes) ────────────
+
+export async function obtenerGastosFijos(): Promise<GastoFijo[]> {
+  const { data, error } = await supabase
+    .from("gastos_fijos")
+    .select("*")
+    .order("dia_del_mes", { ascending: true, nullsFirst: false })
+    .order("creado_en", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as GastoFijo[];
+}
+
+export async function crearGastoFijo(input: GastoFijoInput): Promise<GastoFijo> {
+  const { data, error } = await supabase
+    .from("gastos_fijos")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as GastoFijo;
+}
+
+export async function actualizarGastoFijo(
+  id: string,
+  cambios: Partial<GastoFijoInput>
+): Promise<GastoFijo> {
+  const { data, error } = await supabase
+    .from("gastos_fijos")
+    .update(cambios)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as GastoFijo;
+}
+
+export async function eliminarGastoFijo(id: string): Promise<void> {
+  const { error } = await supabase.from("gastos_fijos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// Confirma el gasto fijo de un mes: crea el movimiento real con el monto
+// que de verdad salió, dejándolo vinculado a la plantilla para saber que
+// este mes ya está cargado.
+export async function confirmarGastoFijo(
+  fijo: GastoFijo,
+  monto: number,
+  fecha: string
+): Promise<Movimiento> {
+  const { data, error } = await supabase
+    .from("movimientos")
+    .insert({
+      hogar_id: fijo.hogar_id,
+      fecha,
+      descripcion: fijo.descripcion,
+      categoria: fijo.categoria,
+      monto,
+      pagado_por: fijo.pagado_por,
+      modo: fijo.modo,
+      beneficiario_id: null,
+      cuenta_id: fijo.cuenta_id,
+      gasto_fijo_id: fijo.id,
+      notas: null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Movimiento;
 }
 
 // ── Liquidaciones (pagos entre integrantes del hogar) ──────────────────
