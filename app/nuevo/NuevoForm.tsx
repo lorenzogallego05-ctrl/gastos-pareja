@@ -14,7 +14,9 @@ import {
   marcarComoCuota,
 } from "@/lib/api";
 import { Categoria, ModoGasto } from "@/lib/types";
-import { fechaHoy, formatMes, sumarMeses } from "@/lib/formato";
+import { fechaHoy, formatMes, formatMonto, sumarMeses } from "@/lib/formato";
+import { gastosFrecuentes, GastoFrecuente } from "@/lib/calculos";
+import { useMovimientos } from "@/lib/useMovimientos";
 import CategoryChips from "@/components/CategoryChips";
 import EntidadLogo from "@/components/EntidadLogo";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -27,13 +29,21 @@ export default function NuevoForm() {
   const { perfil, hogar } = useAuth();
   const { perfiles } = usePerfilesHogar();
   const { cuentas } = useCuentas();
+  const { movimientos } = useMovimientos();
   const { mostrarToast } = useToast();
 
   const [monto, setMonto] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [pagadoPor, setPagadoPor] = useState<string>(perfil?.id ?? "");
-  const [modo, setModo] = useState<ModoGasto>(perfiles.length > 1 ? "compartido" : "personal");
+  // null = todavía no lo tocó nadie, así que vale el default. No se puede
+  // fijar el default en el useState porque los perfiles del hogar cargan
+  // después del primer render: ahí siempre parecería un hogar de una sola
+  // persona y todo gasto arrancaría como "personal" (sin repartir, y
+  // encima invisible para el otro).
+  const [modoElegido, setModoElegido] = useState<ModoGasto | null>(null);
+  const modo: ModoGasto =
+    modoElegido ?? (perfiles.length > 1 ? "compartido" : "personal");
   const [cuentaId, setCuentaId] = useState<string | null>(null);
   const [fecha, setFecha] = useState(fechaHoy());
   const [esCuota, setEsCuota] = useState(false);
@@ -56,6 +66,24 @@ export default function NuevoForm() {
     [perfiles, pagadoPor]
   );
 
+  // Atajos para repetir los gastos que ya cargás seguido: llenar el
+  // formulario a mano es lo que más cuesta, y lo que hace que la gente
+  // deje de usar estas apps.
+  const frecuentes = useMemo(
+    () => (perfil ? gastosFrecuentes(movimientos, perfil.id) : []),
+    [movimientos, perfil]
+  );
+
+  function usarFrecuente(g: GastoFrecuente) {
+    setMonto(String(g.monto));
+    setDescripcion(g.descripcion);
+    setCategoria(g.categoria);
+    // También se repite si era compartido o personal: si no, repetir un
+    // gasto de siempre podría cambiarle el reparto sin que se note.
+    setModoElegido(g.modo);
+    if (g.cuentaId) setCuentaId(g.cuentaId);
+  }
+
   useEffect(() => {
     if (!idEditar) return;
     obtenerMovimiento(idEditar)
@@ -65,7 +93,7 @@ export default function NuevoForm() {
         setDescripcion(m.descripcion);
         setCategoria(m.categoria);
         setPagadoPor(m.pagado_por);
-        setModo(m.modo);
+        setModoElegido(m.modo);
         setCuentaId(m.cuenta_id);
         setFecha(m.fecha);
         if (m.cuota_actual && m.cuota_total && m.cuota_grupo_id) {
@@ -226,6 +254,31 @@ export default function NuevoForm() {
       </div>
 
       <form onSubmit={guardar} className="flex flex-1 flex-col gap-5">
+        {!idEditar && frecuentes.length > 0 && (
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted">
+              Repetir uno de siempre
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {frecuentes.map((g) => (
+                <button
+                  key={g.descripcion}
+                  type="button"
+                  onClick={() => usarFrecuente(g)}
+                  className="glass flex min-h-[44px] items-center gap-2 rounded-2xl px-3.5 text-left active:opacity-70"
+                >
+                  <span className="text-sm font-medium text-foreground">
+                    {g.descripcion}
+                  </span>
+                  <span className="text-sm font-semibold text-accent">
+                    {formatMonto(g.monto)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="mb-1 block text-sm font-medium text-muted">
             Monto
@@ -292,7 +345,7 @@ export default function NuevoForm() {
             </label>
             <SegmentedControl<ModoGasto>
               value={modo}
-              onChange={setModo}
+              onChange={setModoElegido}
               options={[
                 { value: "personal", label: "Mío" },
                 { value: "compartido", label: "Compartido" },

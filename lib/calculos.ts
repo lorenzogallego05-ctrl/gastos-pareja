@@ -239,6 +239,54 @@ export function consumoCuentaMes(
     .reduce((sum, m) => sum + m.monto, 0);
 }
 
+export interface GastoFrecuente {
+  descripcion: string;
+  categoria: string;
+  monto: number;
+  cuentaId: string | null;
+  modo: Movimiento["modo"];
+  veces: number;
+}
+
+// Los gastos que esta persona ya cargó varias veces con el mismo nombre
+// (supermercado, nafta, delivery...), para poder repetirlos de un toque
+// en vez de volver a llenar todo el formulario. Se toma el último monto
+// y categoría usados, que es lo más probable que quiera repetir.
+export function gastosFrecuentes(
+  movimientos: Movimiento[],
+  perfilId: string,
+  limite = 4
+): GastoFrecuente[] {
+  const propios = movimientos.filter((m) => m.pagado_por === perfilId);
+  const grupos = new Map<string, { ultimo: Movimiento; veces: number }>();
+
+  for (const m of propios) {
+    const clave = m.descripcion.trim().toLowerCase();
+    if (!clave) continue;
+    const grupo = grupos.get(clave);
+    if (!grupo) {
+      grupos.set(clave, { ultimo: m, veces: 1 });
+      continue;
+    }
+    grupo.veces += 1;
+    // `movimientos` ya viene ordenado del más nuevo al más viejo, así que
+    // el primero que vimos de cada grupo es el último que cargó.
+  }
+
+  return Array.from(grupos.values())
+    .filter((g) => g.veces >= 2)
+    .sort((a, b) => b.veces - a.veces)
+    .slice(0, limite)
+    .map((g) => ({
+      descripcion: g.ultimo.descripcion,
+      categoria: g.ultimo.categoria,
+      monto: g.ultimo.monto,
+      cuentaId: g.ultimo.cuenta_id,
+      modo: g.ultimo.modo,
+      veces: g.veces,
+    }));
+}
+
 export function mapaPresupuestos(
   presupuestos: Presupuesto[]
 ): Record<string, number> {
