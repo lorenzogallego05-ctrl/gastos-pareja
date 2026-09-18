@@ -15,6 +15,12 @@ export function formatUSD(montoArs: number, venta: number): string {
   })}`;
 }
 
+// Línea de referencia en dólares: además de la conversión, muestra a
+// cuánto está el oficial hoy, así se entiende de dónde sale el número.
+export function textoUSD(montoArs: number, venta: number): string {
+  return `≈ ${formatUSD(montoArs, venta)} · oficial ${formatMonto(venta)}`;
+}
+
 export function mesActual(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

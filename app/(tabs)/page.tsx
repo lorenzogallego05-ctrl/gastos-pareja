@@ -19,7 +19,7 @@ import {
   totalGastadoMes,
   totalesPorCategoria,
 } from "@/lib/calculos";
-import { formatMes, formatMonto, formatUSD, mesActual } from "@/lib/formato";
+import { formatMes, formatMonto, mesActual, textoUSD } from "@/lib/formato";
 import { useDolarOficial } from "@/lib/useDolar";
 import DebtCard from "@/components/DebtCard";
 import CuentasCard from "@/components/CuentasCard";
@@ -137,7 +137,7 @@ export default function DashboardPage() {
             </p>
             {dolarOficial && (
               <p className="text-xs text-subtle">
-                ≈ {formatUSD(totalMes, dolarOficial)} (dólar oficial)
+                {textoUSD(totalMes, dolarOficial)}
               </p>
             )}
             {reparto.personas.length >= 2 && (

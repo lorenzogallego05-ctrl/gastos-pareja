@@ -5,7 +5,7 @@ import { estanAlDia, fraseDeuda, Balance } from "@/lib/calculos";
 import { crearLiquidacion } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 import { useToast } from "@/lib/useToast";
-import { formatFechaCorta, formatMonto, formatUSD } from "@/lib/formato";
+import { formatFechaCorta, formatMonto, textoUSD } from "@/lib/formato";
 import { useDolarOficial } from "@/lib/useDolar";
 import { Liquidacion, Perfil } from "@/lib/types";
 import MoneyInput from "@/components/MoneyInput";
@@ -53,7 +53,7 @@ export default function DebtCard({
 
       {!alDia && dolarOficial && (
         <p className="relative mt-1 text-xs text-subtle">
-          ≈ {formatUSD(diferenciaAbs, dolarOficial)} (dólar oficial)
+          {textoUSD(diferenciaAbs, dolarOficial)}
         </p>
       )}
 
