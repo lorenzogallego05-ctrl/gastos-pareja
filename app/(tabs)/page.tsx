@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useMovimientos } from "@/lib/useMovimientos";
@@ -14,6 +14,7 @@ import {
   calcularBalanceGeneral,
   calcularMisGastos,
   calcularReparto,
+  compromisosDelMes,
   mapaPresupuestos,
   movimientosVisibles,
   totalGastadoMes,
@@ -23,6 +24,10 @@ import { formatMes, formatMonto, mesActual, textoUSD } from "@/lib/formato";
 import { useDolarOficial } from "@/lib/useDolar";
 import DebtCard from "@/components/DebtCard";
 import CuentasCard from "@/components/CuentasCard";
+import CompromisosCard from "@/components/CompromisosCard";
+import SeccionInicio from "@/components/SeccionInicio";
+import { useGastosFijos } from "@/lib/useGastosFijos";
+import { useSeccionesInicio } from "@/lib/useSeccionesInicio";
 import CategoryChart from "@/components/CategoryChart";
 import MovementList from "@/components/MovementList";
 
@@ -37,7 +42,10 @@ export default function DashboardPage() {
   const { categorias } = useCategorias();
   const { presupuestos } = usePresupuestos(mes);
   const { perfiles } = usePerfilesHogar();
+  const { gastosFijos } = useGastosFijos();
   const dolarOficial = useDolarOficial();
+  const { estaVisible, alternar } = useSeccionesInicio();
+  const [personalizando, setPersonalizando] = useState(false);
 
   const movimientosMes = useMemo(
     () => movimientos.filter((m) => m.fecha.startsWith(mes)),
@@ -77,6 +85,10 @@ export default function DashboardPage() {
     () => (perfil ? calcularMisGastos(movimientosMes, reparto, perfil.id) : null),
     [movimientosMes, reparto, perfil]
   );
+  const compromisos = useMemo(
+    () => compromisosDelMes(gastosFijos, movimientos, mes),
+    [gastosFijos, movimientos, mes]
+  );
   const ultimos = useMemo(
     () => (perfil ? movimientosVisibles(movimientos, perfil.id).slice(0, 10) : []),
     [movimientos, perfil]
@@ -94,12 +106,20 @@ export default function DashboardPage() {
           <p className="text-xs font-medium text-subtle">
             Hola, {perfil?.nombre} 👋
           </p>
-          <button
-            onClick={cambiarUsuario}
-            className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
-          >
-            Salir
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPersonalizando((v) => !v)}
+              className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
+            >
+              {personalizando ? "Listo" : "Personalizar"}
+            </button>
+            <button
+              onClick={cambiarUsuario}
+              className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
+            >
+              Salir
+            </button>
+          </div>
         </div>
         <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-foreground">
           Inicio
@@ -118,16 +138,45 @@ export default function DashboardPage() {
           )}
 
           {balance.personas.length >= 2 && (
-            <DebtCard
-              balance={balance}
-              perfiles={perfiles}
-              liquidaciones={liquidaciones}
-              onLiquidado={recargarLiquidaciones}
-            />
+            <SeccionInicio
+              titulo="Balance general"
+              visible={estaVisible("balance")}
+              personalizando={personalizando}
+              onAlternar={() => alternar("balance")}
+            >
+              <DebtCard
+                balance={balance}
+                perfiles={perfiles}
+                liquidaciones={liquidaciones}
+                onLiquidado={recargarLiquidaciones}
+              />
+            </SeccionInicio>
           )}
 
-          <CuentasCard movimientos={movimientos} />
+          <SeccionInicio
+            titulo="Tus cuentas"
+            visible={estaVisible("cuentas")}
+            personalizando={personalizando}
+            onAlternar={() => alternar("cuentas")}
+          >
+            <CuentasCard movimientos={movimientos} />
+          </SeccionInicio>
 
+          <SeccionInicio
+            titulo="Fijos y cuotas"
+            visible={estaVisible("compromisos")}
+            personalizando={personalizando}
+            onAlternar={() => alternar("compromisos")}
+          >
+            <CompromisosCard compromisos={compromisos} perfiles={perfiles} />
+          </SeccionInicio>
+
+          <SeccionInicio
+            titulo="Total gastado este mes"
+            visible={estaVisible("total")}
+            personalizando={personalizando}
+            onAlternar={() => alternar("total")}
+          >
           <div className="glass rounded-[28px] p-5">
             <p className="text-sm font-medium text-muted">
               Total gastado este mes
@@ -149,8 +198,15 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
+          </SeccionInicio>
 
           {misGastos && reparto.personas.length >= 2 && (
+            <SeccionInicio
+              titulo="Mis gastos"
+              visible={estaVisible("misgastos")}
+              personalizando={personalizando}
+              onAlternar={() => alternar("misgastos")}
+            >
             <div className="glass rounded-[28px] p-5">
               <h2 className="mb-3 text-base font-semibold text-foreground">
                 Mis gastos ({perfil?.nombre})
@@ -184,25 +240,40 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+            </SeccionInicio>
           )}
 
-          <div className="glass rounded-[28px] p-5">
-            <h2 className="mb-3 text-base font-semibold text-foreground">
-              Gasto por categoría
-            </h2>
-            <CategoryChart
-              datos={categoriaTotales}
-              categorias={categorias}
-              presupuestos={presupuestosMapa}
-            />
-          </div>
+          <SeccionInicio
+            titulo="Gasto por categoría"
+            visible={estaVisible("categorias")}
+            personalizando={personalizando}
+            onAlternar={() => alternar("categorias")}
+          >
+            <div className="glass rounded-[28px] p-5">
+              <h2 className="mb-3 text-base font-semibold text-foreground">
+                Gasto por categoría
+              </h2>
+              <CategoryChart
+                datos={categoriaTotales}
+                categorias={categorias}
+                presupuestos={presupuestosMapa}
+              />
+            </div>
+          </SeccionInicio>
 
-          <MovementList
-            movimientos={ultimos}
-            categorias={categorias}
-            perfiles={perfiles}
-            verTodosHref="/historial"
-          />
+          <SeccionInicio
+            titulo="Últimos movimientos"
+            visible={estaVisible("ultimos")}
+            personalizando={personalizando}
+            onAlternar={() => alternar("ultimos")}
+          >
+            <MovementList
+              movimientos={ultimos}
+              categorias={categorias}
+              perfiles={perfiles}
+              verTodosHref="/historial"
+            />
+          </SeccionInicio>
         </>
       )}
     </div>
