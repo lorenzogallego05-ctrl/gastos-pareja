@@ -25,7 +25,7 @@ export function useLiquidaciones() {
     recargar();
 
     const channel = supabase
-      .channel("liquidaciones-realtime")
+      .channel(`liquidaciones-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "liquidaciones" },

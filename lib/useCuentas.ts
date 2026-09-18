@@ -25,7 +25,7 @@ export function useCuentas() {
     recargar();
 
     const channel = supabase
-      .channel("cuentas-realtime")
+      .channel(`cuentas-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "cuentas" },

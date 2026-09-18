@@ -27,7 +27,7 @@ export function usePresupuestos(mes: string) {
     recargar();
 
     const channel = supabase
-      .channel(`presupuestos-realtime-${mes}`)
+      .channel(`presupuestos-realtime-${mes}-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         {

@@ -24,7 +24,7 @@ export function usePerfilesHogar() {
     recargar();
 
     const channel = supabase
-      .channel("perfiles-realtime")
+      .channel(`perfiles-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "perfiles" },

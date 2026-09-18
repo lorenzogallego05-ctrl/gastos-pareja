@@ -32,7 +32,7 @@ export function useCategorias() {
     recargar();
 
     const channel = supabase
-      .channel("categorias-realtime")
+      .channel(`categorias-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "categorias" },

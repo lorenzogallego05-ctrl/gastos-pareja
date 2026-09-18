@@ -41,7 +41,7 @@ export function useMovimientos() {
     recargar();
 
     const channel = supabase
-      .channel("movimientos-realtime")
+      .channel(`movimientos-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "movimientos" },

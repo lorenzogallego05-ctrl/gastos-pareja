@@ -27,7 +27,7 @@ export function useIngresos() {
     recargar();
 
     const channel = supabase
-      .channel("ingresos-todos-realtime")
+      .channel(`ingresos-todos-realtime-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "ingresos" },
