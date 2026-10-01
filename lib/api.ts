@@ -492,3 +492,40 @@ export async function eliminarLiquidacion(id: string): Promise<void> {
   const { error } = await supabase.from("liquidaciones").delete().eq("id", id);
   if (error) throw error;
 }
+
+// ── Token de carga rápida (Atajos de iOS) ──────────────────────────────
+// El token se genera en el navegador y se guarda tal cual: hay que poder
+// volver a mostrarlo para pegarlo en el Atajo. Solo lo lee su dueño (RLS),
+// y lo único que habilita es crear gastos propios, nunca leer datos.
+
+export async function obtenerMiTokenRapido(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("tokens_entrada_rapida")
+    .select("token")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as { token: string } | null)?.token ?? null;
+}
+
+export async function generarMiTokenRapido(perfilId: string): Promise<string> {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  const token = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+
+  // Uno por persona: el nuevo reemplaza al viejo, así que el Atajo que
+  // tenía el anterior deja de funcionar (es la forma de revocarlo).
+  await supabase.from("tokens_entrada_rapida").delete().eq("perfil_id", perfilId);
+  const { error } = await supabase
+    .from("tokens_entrada_rapida")
+    .insert({ token, perfil_id: perfilId });
+  if (error) throw error;
+  return token;
+}
+
+export async function borrarMiTokenRapido(perfilId: string): Promise<void> {
+  const { error } = await supabase
+    .from("tokens_entrada_rapida")
+    .delete()
+    .eq("perfil_id", perfilId);
+  if (error) throw error;
+}

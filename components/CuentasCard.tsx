@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useCuentas } from "@/lib/useCuentas";
 import { actualizarCuenta } from "@/lib/api";
 import { saldoCuenta, consumoCuentaMes } from "@/lib/calculos";
 import { formatMonto, mesActual } from "@/lib/formato";
@@ -12,12 +11,18 @@ import EntidadLogo from "@/components/EntidadLogo";
 // solo las suyas). En modo edición se pueden reordenar (con flechas, más
 // confiable en mobile que arrastrar) y ocultar/mostrar cada una acá sin
 // borrarla ni afectar la lista completa en Finanzas > Cuentas.
-// Recibe `movimientos` por prop (en vez de pedirlos con su propio hook)
-// porque la página de Inicio ya los tiene: pedirlos de nuevo acá abriría
-// una segunda suscripción realtime al mismo canal, y Supabase tira error
-// si se intenta escuchar un canal que la primera ya dejó suscripto.
-export default function CuentasCard({ movimientos }: { movimientos: Movimiento[] }) {
-  const { cuentas, cargando } = useCuentas();
+// Recibe `cuentas` y `movimientos` por prop (en vez de pedirlos con sus
+// propios hooks) porque la página de Inicio ya los tiene: pedirlos de
+// nuevo acá duplicaría las consultas y las suscripciones realtime.
+export default function CuentasCard({
+  cuentas,
+  cargando,
+  movimientos,
+}: {
+  cuentas: Cuenta[];
+  cargando: boolean;
+  movimientos: Movimiento[];
+}) {
   const [editando, setEditando] = useState(false);
   const mes = mesActual();
 
@@ -125,7 +130,7 @@ export default function CuentasCard({ movimientos }: { movimientos: Movimiento[]
                 </div>
               ) : (
                 <span
-                  className={`shrink-0 text-sm font-semibold whitespace-nowrap ${
+                  className={`monto shrink-0 text-sm font-semibold whitespace-nowrap ${
                     negativo ? "text-danger" : "text-foreground"
                   }`}
                 >

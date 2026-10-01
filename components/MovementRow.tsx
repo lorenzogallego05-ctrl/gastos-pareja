@@ -112,7 +112,7 @@ export default function MovementRow({
           </button>
         )}
       </div>
-      <span className="whitespace-nowrap font-semibold text-foreground">
+      <span className="monto whitespace-nowrap font-semibold text-foreground">
         {formatMonto(movimiento.monto)}
       </span>
       <button

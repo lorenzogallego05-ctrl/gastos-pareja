@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf6f0;
+  --background: #f1f6f1;
   --surface: #ffffff;
-  --foreground: #2a211b;
-  --muted: #6b5d4f;
-  --subtle: #9c8c7d;
-  --border: rgba(42, 33, 27, 0.1);
-  --accent: #b5502e;
-  --accent-strong: #7c371b;
-  --pink: #ff2d55;
-  --good: #34c759;
-  --danger: #ff3b30;
+  --foreground: #13241a;
+  --muted: #4a5f52;
+  --subtle: #7b9183;
+  --border: rgba(19, 36, 26, 0.1);
+  --accent: #17764a;
+  --accent-strong: #0b4e2f;
+  --accent-2: #c87d35;
+  --good: #1f9d55;
+  --danger: #d4452f;
 
   /* Materiales "Liquid Glass": superficies traslúcidas con blur. */
   --glass-surface: rgba(255, 255, 255, 0.6);
@@ -32,7 +32,7 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
-  --color-pink: var(--pink);
+  --color-accent-2: var(--accent-2);
   --color-good: var(--good);
   --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
@@ -42,20 +42,20 @@
    manualmente en Configuración (ver lib/useTheme.tsx → data-theme). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #1c1512;
-    --surface: #2a211b;
-    --foreground: #faf5ef;
-    --muted: #c9bcae;
-    --subtle: #9c8c7d;
-    --border: rgba(250, 245, 239, 0.12);
-    --accent: #dc8360;
-    --accent-strong: #f0a87d;
-    --pink: #ff375f;
-    --good: #30d158;
-    --danger: #ff453a;
+    --background: #0d1410;
+    --surface: #16211a;
+    --foreground: #edf4ee;
+    --muted: #afc5b5;
+    --subtle: #819a89;
+    --border: rgba(237, 244, 238, 0.12);
+    --accent: #3fbd7d;
+    --accent-strong: #74dea6;
+    --accent-2: #e0a04a;
+    --good: #3fd98a;
+    --danger: #ff6a55;
 
-    --glass-surface: rgba(28, 28, 31, 0.62);
-    --glass-surface-strong: rgba(28, 28, 31, 0.85);
+    --glass-surface: rgba(22, 33, 26, 0.62);
+    --glass-surface-strong: rgba(22, 33, 26, 0.85);
     --glass-border: rgba(255, 255, 255, 0.14);
     --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
   }
@@ -63,20 +63,20 @@
 
 /* Elección manual "Oscuro", gane o no el sistema. */
 :root[data-theme="dark"] {
-  --background: #1c1512;
-  --surface: #2a211b;
-  --foreground: #faf5ef;
-  --muted: #c9bcae;
-  --subtle: #9c8c7d;
-  --border: rgba(250, 245, 239, 0.12);
-  --accent: #dc8360;
-  --accent-strong: #f0a87d;
-  --pink: #ff375f;
-  --good: #30d158;
-  --danger: #ff453a;
+  --background: #0d1410;
+  --surface: #16211a;
+  --foreground: #edf4ee;
+  --muted: #afc5b5;
+  --subtle: #819a89;
+  --border: rgba(237, 244, 238, 0.12);
+  --accent: #3fbd7d;
+  --accent-strong: #74dea6;
+  --accent-2: #e0a04a;
+  --good: #3fd98a;
+  --danger: #ff6a55;
 
-  --glass-surface: rgba(28, 28, 31, 0.62);
-  --glass-surface-strong: rgba(28, 28, 31, 0.85);
+  --glass-surface: rgba(22, 33, 26, 0.62);
+  --glass-surface-strong: rgba(22, 33, 26, 0.85);
   --glass-border: rgba(255, 255, 255, 0.14);
   --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
 }
@@ -109,7 +109,7 @@ body::before {
   pointer-events: none;
   background:
     radial-gradient(560px 420px at 8% -5%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 65%),
-    radial-gradient(520px 420px at 108% 18%, color-mix(in srgb, var(--pink) 16%, transparent), transparent 60%),
+    radial-gradient(520px 420px at 108% 18%, color-mix(in srgb, var(--accent-2) 14%, transparent), transparent 60%),
     radial-gradient(600px 500px at 50% 115%, color-mix(in srgb, var(--good) 12%, transparent), transparent 60%);
   filter: blur(50px) saturate(140%);
 }
@@ -146,4 +146,18 @@ textarea {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Modo "ocultar montos": el ojito de Inicio. No se cambian los números por
+   asteriscos a propósito — difuminarlos deja intacto el diseño (el ancho
+   de cada fila no salta) y se entiende al toque que están tapados, no
+   borrados. Ver lib/usePrivacidad.tsx. */
+.monto {
+  transition: filter 160ms ease;
+}
+
+:root[data-montos="ocultos"] .monto {
+  filter: blur(7px);
+  user-select: none;
+  pointer-events: none;
 }

@@ -358,3 +358,26 @@ export function mapaPresupuestos(
   for (const p of presupuestos) mapa[p.categoria] = p.monto;
   return mapa;
 }
+
+export interface DiaDeMovimientos {
+  fecha: string;
+  movimientos: Movimiento[];
+  total: number;
+}
+
+// Agrupa una lista YA ordenada de más nuevo a más viejo en bloques por
+// día, con el subtotal de cada uno. Se respeta el orden de entrada en vez
+// de reordenar: así el Historial sigue mostrando lo último arriba.
+export function agruparPorDia(movimientos: Movimiento[]): DiaDeMovimientos[] {
+  const dias: DiaDeMovimientos[] = [];
+  for (const m of movimientos) {
+    const ultimo = dias[dias.length - 1];
+    if (ultimo && ultimo.fecha === m.fecha) {
+      ultimo.movimientos.push(m);
+      ultimo.total += m.monto;
+    } else {
+      dias.push({ fecha: m.fecha, movimientos: [m], total: m.monto });
+    }
+  }
+  return dias;
+}

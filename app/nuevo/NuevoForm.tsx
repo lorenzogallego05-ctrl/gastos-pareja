@@ -238,7 +238,7 @@ export default function NuevoForm() {
     );
   }
 
-  const coloresPersona = ["bg-accent", "bg-pink"];
+  const coloresPersona = ["bg-accent", "bg-accent-2"];
 
   return (
     <main
@@ -276,7 +276,7 @@ export default function NuevoForm() {
                   <span className="text-sm font-medium text-foreground">
                     {g.descripcion}
                   </span>
-                  <span className="text-sm font-semibold text-accent">
+                  <span className="monto text-sm font-semibold text-accent">
                     {formatMonto(g.monto)}
                   </span>
                 </button>

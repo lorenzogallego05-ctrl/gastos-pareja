@@ -4,11 +4,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useTheme, Tema } from "@/lib/useTheme";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
+import { usePrivacidad } from "@/lib/usePrivacidad";
 import { useToast } from "@/lib/useToast";
 import SegmentedControl from "@/components/SegmentedControl";
+import CargaRapidaCard from "@/components/CargaRapidaCard";
 
 export default function ConfiguracionPage() {
   const { tema, elegirTema } = useTheme();
+  const { montosOcultos, alternarMontos } = usePrivacidad();
   const { perfil, hogar, salir } = useAuth();
   const { perfiles } = usePerfilesHogar();
   const { mostrarToast } = useToast();
@@ -51,7 +54,34 @@ export default function ConfiguracionPage() {
             { value: "auto", label: "Automático" },
           ]}
         />
+
+        <div className="mt-1 flex items-center justify-between gap-3 border-t border-border pt-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Ocultar los montos</p>
+            <p className="text-xs text-subtle">
+              Difumina toda la plata, para abrir la app al lado de otra persona.
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={montosOcultos}
+            onClick={alternarMontos}
+            aria-label="Ocultar los montos"
+            className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${
+              montosOcultos ? "bg-accent" : "bg-border"
+            }`}
+          >
+            <span
+              className={`absolute top-1 left-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                montosOcultos ? "translate-x-6" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
       </div>
+
+      {perfil && <CargaRapidaCard perfilId={perfil.id} />}
 
       {hogar && (
         <div className="glass flex flex-col gap-3 rounded-[28px] p-5">
@@ -79,6 +109,26 @@ export default function ConfiguracionPage() {
           )}
         </div>
       )}
+
+      <div className="glass flex flex-col gap-3 rounded-[28px] p-5">
+        <h2 className="text-base font-semibold text-foreground">
+          Instalar Fairo en el celular
+        </h2>
+        <p className="text-sm text-subtle">
+          Instalada se abre a pantalla completa, entra más rápido y queda con su
+          ícono entre tus apps.
+        </p>
+        <div className="flex flex-col gap-1 text-sm text-muted">
+          <p>
+            <strong className="text-foreground">iPhone:</strong> abrila en Safari,
+            tocá Compartir y elegí &ldquo;Agregar a inicio&rdquo;.
+          </p>
+          <p>
+            <strong className="text-foreground">Android:</strong> abrila en Chrome,
+            tocá el menú de tres puntos y elegí &ldquo;Instalar aplicación&rdquo;.
+          </p>
+        </div>
+      </div>
 
       <div className="glass flex flex-col gap-3 rounded-[28px] p-5">
         <h2 className="text-base font-semibold text-foreground">Cuenta</h2>

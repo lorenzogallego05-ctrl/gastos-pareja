@@ -44,7 +44,7 @@ export default function DebtCard({
       <p className="relative text-sm font-medium text-muted">Balance general</p>
       <p
         className={`relative mt-2 text-2xl leading-snug font-extrabold ${
-          alDia ? "text-good" : "text-foreground"
+          alDia ? "text-good" : "monto text-foreground"
         }`}
       >
         {alDia && "✅ "}
@@ -52,7 +52,7 @@ export default function DebtCard({
       </p>
 
       {!alDia && dolarOficial && (
-        <p className="relative mt-1 text-xs text-subtle">
+        <p className="monto relative mt-1 text-xs text-subtle">
           {textoUSD(diferenciaAbs, dolarOficial)}
         </p>
       )}
@@ -94,7 +94,7 @@ export default function DebtCard({
                   <span>
                     {de} → {a} · {formatFechaCorta(l.fecha)}
                   </span>
-                  <span className="font-semibold text-foreground">
+                  <span className="monto font-semibold text-foreground">
                     {formatMonto(l.monto)}
                   </span>
                 </li>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CategoriaTotal } from "@/lib/calculos";
 import { iconoDeCategoria } from "@/lib/categorias";
 import { formatMonto } from "@/lib/formato";
@@ -7,10 +8,15 @@ export default function CategoryChart({
   datos,
   categorias,
   presupuestos,
+  enlaceMes,
 }: {
   datos: CategoriaTotal[];
   categorias: CategoriaRow[];
   presupuestos?: Record<string, number>;
+  // Si viene, cada barra se vuelve tocable y lleva al Historial filtrado
+  // por esa categoría y ese mes. Así el gráfico deja de ser sólo un
+  // adorno: "gasté $80.000 en comida" se puede abrir para ver en qué.
+  enlaceMes?: string;
 }) {
   if (datos.length === 0) {
     return (
@@ -31,8 +37,9 @@ export default function CategoryChart({
         const limite = presupuestos?.[d.categoria];
         const excedido = !!limite && d.total > limite;
         const pctLimite = limite ? Math.min(100, (limite / max) * 100) : null;
-        return (
-          <li key={d.categoria} className="flex items-center gap-3">
+
+        const fila = (
+          <>
             <span className="w-6 text-lg" aria-hidden>
               {iconoDeCategoria(categorias, d.categoria)}
             </span>
@@ -42,7 +49,7 @@ export default function CategoryChart({
                   {d.categoria}
                 </span>
                 <span
-                  className={`whitespace-nowrap ${
+                  className={`monto whitespace-nowrap ${
                     excedido ? "font-semibold text-danger" : "text-muted"
                   }`}
                 >
@@ -66,6 +73,23 @@ export default function CategoryChart({
                 )}
               </div>
             </div>
+          </>
+        );
+
+        return (
+          <li key={d.categoria}>
+            {enlaceMes ? (
+              <Link
+                href={`/historial?mes=${enlaceMes}&categoria=${encodeURIComponent(
+                  d.categoria
+                )}`}
+                className="-mx-2 flex items-center gap-3 rounded-2xl px-2 py-1 active:bg-border/50"
+              >
+                {fila}
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3">{fila}</div>
+            )}
           </li>
         );
       })}

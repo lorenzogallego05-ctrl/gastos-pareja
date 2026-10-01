@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/useAuth";
 import { ToastProvider } from "@/lib/useToast";
 import { ThemeProvider } from "@/lib/useTheme";
+import { PrivacidadProvider } from "@/lib/usePrivacidad";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 const geistSans = Geist({
@@ -49,8 +50,8 @@ export const viewport: Viewport = {
   // así que no hace falta bloquearlo a mano.
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf6f0" },
-    { media: "(prefers-color-scheme: dark)", color: "#1c1512" },
+    { media: "(prefers-color-scheme: light)", color: "#f1f6f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1410" },
   ],
 };
 
@@ -68,14 +69,16 @@ export default function RootLayout({
           // Evita el parpadeo de tema: aplica la preferencia guardada
           // antes de que el navegador pinte la primera vez.
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("gastos-pareja:tema");if(t==="claro")document.documentElement.dataset.theme="light";else if(t==="oscuro")document.documentElement.dataset.theme="dark";}catch(e){}`,
+            __html: `try{var t=localStorage.getItem("gastos-pareja:tema");if(t==="claro")document.documentElement.dataset.theme="light";else if(t==="oscuro")document.documentElement.dataset.theme="dark";if(localStorage.getItem("fairo:montos_ocultos")==="1")document.documentElement.dataset.montos="ocultos";}catch(e){}`,
           }}
         />
         <ServiceWorkerRegister />
         <ThemeProvider>
-          <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </AuthProvider>
+          <PrivacidadProvider>
+            <AuthProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </AuthProvider>
+          </PrivacidadProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -39,7 +39,7 @@ import CompromisosCard from "@/components/CompromisosCard";
 
 type Vista = "ingresos" | "presupuestos" | "cuentas" | "fijos";
 
-const COLORES_PERSONA = ["var(--accent)", "var(--pink)"];
+const COLORES_PERSONA = ["var(--accent)", "var(--accent-2)"];
 
 export default function IngresosPage() {
   const [mes, setMes] = useState(mesActual());
@@ -289,7 +289,7 @@ function SeccionPresupuestos({ mes }: { mes: string }) {
                     />
                   </div>
                   <p
-                    className={`mt-1 text-xs ${excedido ? "font-semibold text-danger" : "text-subtle"}`}
+                    className={`monto mt-1 text-xs ${excedido ? "font-semibold text-danger" : "text-subtle"}`}
                   >
                     {formatMonto(gastado)} de {formatMonto(limite)}
                   </p>
@@ -355,7 +355,7 @@ function SeccionCuentas({ mes }: { mes: string }) {
                 </p>
               </div>
               <span
-                className={`font-semibold whitespace-nowrap ${negativo ? "text-danger" : "text-foreground"}`}
+                className={`monto font-semibold whitespace-nowrap ${negativo ? "text-danger" : "text-foreground"}`}
               >
                 {formatMonto(monto)}
               </span>
@@ -608,7 +608,7 @@ function PorcentajeBar({
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between text-sm">
-        <span className="font-medium text-foreground">
+        <span className="monto font-medium text-foreground">
           {nombre} · {formatMonto(monto)}
         </span>
         <span className="font-semibold text-foreground">
@@ -678,7 +678,7 @@ function SeccionFijos({ mes }: { mes: string }) {
                 {g.modo === "personal" ? " · personal" : " · compartido"}
               </p>
             </div>
-            <span className="shrink-0 font-semibold whitespace-nowrap text-foreground">
+            <span className="monto shrink-0 font-semibold whitespace-nowrap text-foreground">
               {formatMonto(g.monto_estimado)}
             </span>
           </button>

@@ -10,6 +10,7 @@ import { useLiquidaciones } from "@/lib/useLiquidaciones";
 import { useCategorias } from "@/lib/useCategorias";
 import { usePresupuestos } from "@/lib/usePresupuestos";
 import { usePerfilesHogar } from "@/lib/usePerfilesHogar";
+import { useCuentas } from "@/lib/useCuentas";
 import {
   calcularBalanceGeneral,
   calcularMisGastos,
@@ -22,17 +23,30 @@ import {
 } from "@/lib/calculos";
 import { formatMes, formatMonto, mesActual, textoUSD } from "@/lib/formato";
 import { useDolarOficial } from "@/lib/useDolar";
+import { usePrivacidad } from "@/lib/usePrivacidad";
 import DebtCard from "@/components/DebtCard";
 import CuentasCard from "@/components/CuentasCard";
 import CompromisosCard from "@/components/CompromisosCard";
 import SeccionInicio from "@/components/SeccionInicio";
+import PrimerosPasos, { Paso } from "@/components/PrimerosPasos";
 import { useGastosFijos } from "@/lib/useGastosFijos";
 import { useSeccionesInicio } from "@/lib/useSeccionesInicio";
 import CategoryChart from "@/components/CategoryChart";
 import MovementList from "@/components/MovementList";
 
+// ¿La app está abierta como app instalada y no como pestaña del navegador?
+// Sirve para dar por cumplido el paso "instalala en tu celular".
+function estaInstalada(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    // iOS no implementa display-mode: standalone en Safari viejo.
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+}
+
 export default function DashboardPage() {
-  const { perfil, salir } = useAuth();
+  const { perfil, hogar, salir } = useAuth();
   const router = useRouter();
   const mes = mesActual();
   const { movimientos, cargando, error } = useMovimientos();
@@ -43,9 +57,14 @@ export default function DashboardPage() {
   const { presupuestos } = usePresupuestos(mes);
   const { perfiles } = usePerfilesHogar();
   const { gastosFijos } = useGastosFijos();
+  // Las cuentas se piden acá (y no dentro de CuentasCard) porque también
+  // las necesita la tarjeta de primeros pasos: un solo pedido para las dos.
+  const { cuentas, cargando: cargandoCuentas } = useCuentas();
   const dolarOficial = useDolarOficial();
   const { estaVisible, alternar } = useSeccionesInicio();
+  const { montosOcultos, alternarMontos } = usePrivacidad();
   const [personalizando, setPersonalizando] = useState(false);
+  const [instalada] = useState(estaInstalada);
 
   const movimientosMes = useMemo(
     () => movimientos.filter((m) => m.fecha.startsWith(mes)),
@@ -94,6 +113,57 @@ export default function DashboardPage() {
     [movimientos, perfil]
   );
 
+  const pasos = useMemo<Paso[]>(() => {
+    const miIngreso = ingresos.find((i) => i.perfil_id === perfil?.id);
+    const lista: Paso[] = [
+      {
+        id: "gasto",
+        texto: "Anotá tu primer gasto",
+        href: "/nuevo",
+        accion: "Cargar un gasto",
+        hecho: movimientos.length > 0,
+      },
+      {
+        id: "ingreso",
+        texto: "Cargá cuánto cobrás este mes",
+        href: "/ingresos",
+        accion: "Cargar mi ingreso",
+        hecho: !!miIngreso && miIngreso.monto > 0,
+      },
+      {
+        id: "cuentas",
+        texto: "Sumá tus tarjetas y cuentas",
+        href: "/ingresos",
+        accion: "Agregar una cuenta",
+        hecho: cuentas.length > 0,
+      },
+      {
+        id: "fijos",
+        texto: "Anotá un gasto fijo (alquiler, internet…)",
+        href: "/ingresos",
+        accion: "Agregar un gasto fijo",
+        hecho: gastosFijos.length > 0,
+      },
+    ];
+    if (hogar && hogar.capacidad > 1) {
+      lista.push({
+        id: "invitar",
+        texto: "Invitá a la otra persona del hogar",
+        href: "/configuracion",
+        accion: "Ver el código del hogar",
+        hecho: perfiles.length > 1,
+      });
+    }
+    lista.push({
+      id: "instalar",
+      texto: "Instalá Fairo en la pantalla de inicio",
+      href: "/configuracion",
+      accion: "Cómo instalarla",
+      hecho: instalada,
+    });
+    return lista;
+  }, [ingresos, perfil, movimientos, cuentas, gastosFijos, hogar, perfiles, instalada]);
+
   async function cambiarUsuario() {
     await salir();
     router.replace("/login");
@@ -107,6 +177,14 @@ export default function DashboardPage() {
             Hola, {perfil?.nombre} 👋
           </p>
           <div className="flex items-center gap-2">
+            <button
+              onClick={alternarMontos}
+              aria-label={montosOcultos ? "Mostrar los montos" : "Ocultar los montos"}
+              title={montosOcultos ? "Mostrar los montos" : "Ocultar los montos"}
+              className="glass flex min-h-[32px] min-w-[32px] items-center justify-center rounded-full text-sm active:opacity-70"
+            >
+              {montosOcultos ? "🙈" : "👁️"}
+            </button>
             <button
               onClick={() => setPersonalizando((v) => !v)}
               className="glass min-h-[32px] rounded-full px-3.5 text-xs font-semibold text-accent active:opacity-70"
@@ -137,6 +215,8 @@ export default function DashboardPage() {
             </p>
           )}
 
+          {!cargandoCuentas && !personalizando && <PrimerosPasos pasos={pasos} />}
+
           {balance.personas.length >= 2 && (
             <SeccionInicio
               titulo="Balance general"
@@ -159,7 +239,11 @@ export default function DashboardPage() {
             personalizando={personalizando}
             onAlternar={() => alternar("cuentas")}
           >
-            <CuentasCard movimientos={movimientos} />
+            <CuentasCard
+              cuentas={cuentas}
+              cargando={cargandoCuentas}
+              movimientos={movimientos}
+            />
           </SeccionInicio>
 
           <SeccionInicio
@@ -181,16 +265,16 @@ export default function DashboardPage() {
             <p className="text-sm font-medium text-muted">
               Total gastado este mes
             </p>
-            <p className="mt-1 text-3xl font-extrabold text-foreground">
+            <p className="monto mt-1 text-3xl font-extrabold text-foreground">
               {formatMonto(totalMes)}
             </p>
             {dolarOficial && (
-              <p className="text-xs text-subtle">
+              <p className="monto text-xs text-subtle">
                 {textoUSD(totalMes, dolarOficial)}
               </p>
             )}
             {reparto.personas.length >= 2 && (
-              <p className="mt-1 text-xs text-subtle">
+              <p className="monto mt-1 text-xs text-subtle">
                 Compartido —{" "}
                 {reparto.personas
                   .map((p) => `${p.nombre}: ${formatMonto(p.pagado)}`)
@@ -214,27 +298,27 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Personales (no divididos)</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="monto font-semibold text-foreground">
                     {formatMonto(misGastos.personal)}
                   </span>
                 </div>
                 {misGastos.paraOtroRecibido > 0 && (
                   <div className="flex items-center justify-between">
                     <span className="text-muted">Pagados por el otro (100% tuyos)</span>
-                    <span className="font-semibold text-foreground">
+                    <span className="monto font-semibold text-foreground">
                       {formatMonto(misGastos.paraOtroRecibido)}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Tu parte de lo compartido</span>
-                  <span className="font-semibold text-foreground">
+                  <span className="monto font-semibold text-foreground">
                     {formatMonto(misGastos.miParteCompartido)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between border-t border-border pt-2">
                   <span className="font-medium text-foreground">Total tuyo</span>
-                  <span className="text-lg font-extrabold text-accent">
+                  <span className="monto text-lg font-extrabold text-accent">
                     {formatMonto(misGastos.total)}
                   </span>
                 </div>
@@ -250,13 +334,17 @@ export default function DashboardPage() {
             onAlternar={() => alternar("categorias")}
           >
             <div className="glass rounded-[28px] p-5">
-              <h2 className="mb-3 text-base font-semibold text-foreground">
+              <h2 className="mb-1 text-base font-semibold text-foreground">
                 Gasto por categoría
               </h2>
+              <p className="mb-3 text-xs text-subtle">
+                Tocá una categoría para ver en qué se fue.
+              </p>
               <CategoryChart
                 datos={categoriaTotales}
                 categorias={categorias}
                 presupuestos={presupuestosMapa}
+                enlaceMes={mes}
               />
             </div>
           </SeccionInicio>

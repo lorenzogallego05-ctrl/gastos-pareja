@@ -75,3 +75,20 @@ export function fechaHoy(): string {
     now.getDate()
   ).padStart(2, "0")}`;
 }
+
+// Encabezado de un día en el Historial: "Hoy", "Ayer" o "mar 30 de sep".
+export function formatDiaRelativo(fecha: string): string {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const date = new Date(anio, mes - 1, dia);
+  const hoy = new Date();
+  const ayer = new Date();
+  ayer.setDate(hoy.getDate() - 1);
+  if (date.toDateString() === hoy.toDateString()) return "Hoy";
+  if (date.toDateString() === ayer.toDateString()) return "Ayer";
+  const texto = date.toLocaleDateString("es-AR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}

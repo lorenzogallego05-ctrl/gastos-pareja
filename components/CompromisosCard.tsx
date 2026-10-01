@@ -31,7 +31,7 @@ export default function CompromisosCard({
         <h2 className="text-base font-semibold text-foreground">
           Fijos y cuotas
         </h2>
-        <span className="text-lg font-extrabold text-foreground">
+        <span className="monto text-lg font-extrabold text-foreground">
           {formatMonto(total)}
         </span>
       </div>
@@ -67,7 +67,7 @@ export default function CompromisosCard({
                 Cuota {c.cuota_actual}/{c.cuota_total}
               </p>
             </div>
-            <span className="shrink-0 text-sm font-semibold text-foreground">
+            <span className="monto shrink-0 text-sm font-semibold text-foreground">
               {formatMonto(c.monto)}
             </span>
           </div>
@@ -129,7 +129,7 @@ function FilaFijo({
         <span
           className={`shrink-0 text-sm font-semibold ${
             yaCargado ? "text-foreground" : "text-subtle"
-          }`}
+          } monto`}
         >
           {formatMonto(item.monto)}
         </span>
