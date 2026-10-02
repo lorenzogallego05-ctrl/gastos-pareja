@@ -12,10 +12,14 @@ export default function MovementRow({
   movimiento,
   categorias,
   perfiles,
+  mostrarFecha = true,
 }: {
   movimiento: Movimiento;
   categorias: CategoriaRow[];
   perfiles: Perfil[];
+  // En el Historial las filas van agrupadas por día, así que la fecha ya
+  // está en el encabezado del grupo y repetirla es ruido.
+  mostrarFecha?: boolean;
 }) {
   const nombrePagador =
     perfiles.find((p) => p.id === movimiento.pagado_por)?.nombre ?? "—";
@@ -92,8 +96,8 @@ export default function MovementRow({
           )}
         </p>
         <p className="text-xs leading-snug text-subtle">
-          {formatFechaCorta(movimiento.fecha)} · {movimiento.categoria} ·{" "}
-          {nombrePagador}
+          {mostrarFecha && `${formatFechaCorta(movimiento.fecha)} · `}
+          {movimiento.categoria} · {nombrePagador}
           {movimiento.modo === "personal" && " · personal"}
           {movimiento.modo === "para_otro" &&
             nombreBeneficiario &&

@@ -62,11 +62,11 @@ export default function PrimerosPasos({ pasos }: { pasos: Paso[] }) {
       </div>
 
       <div className="flex gap-1.5" aria-hidden>
-        {pasos.map((p) => (
+        {pasos.map((p, i) => (
           <div
             key={p.id}
             className={`h-1.5 flex-1 rounded-full ${
-              p.hecho ? "bg-accent" : "bg-border"
+              i < hechos ? "bg-accent" : "bg-border"
             }`}
           />
         ))}

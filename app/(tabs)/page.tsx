@@ -337,9 +337,11 @@ export default function DashboardPage() {
               <h2 className="mb-1 text-base font-semibold text-foreground">
                 Gasto por categoría
               </h2>
-              <p className="mb-3 text-xs text-subtle">
-                Tocá una categoría para ver en qué se fue.
-              </p>
+              {categoriaTotales.length > 0 && (
+                <p className="mb-3 text-xs text-subtle">
+                  Tocá una categoría para ver en qué se fue.
+                </p>
+              )}
               <CategoryChart
                 datos={categoriaTotales}
                 categorias={categorias}

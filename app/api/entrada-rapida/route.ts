@@ -68,7 +68,15 @@ export async function POST(request: Request) {
   }
 
   let descripcion = dato("descripcion");
-  let monto = dato("monto") ? Number(String(dato("monto")).replace(",", ".")) : undefined;
+  // El monto puede venir como número (JSON) o como texto (Atajos manda
+  // todo como texto, y encima con coma decimal).
+  let monto: number | undefined;
+  if (typeof entrada.monto === "number") {
+    monto = entrada.monto;
+  } else {
+    const crudo = dato("monto");
+    if (crudo) monto = Number(crudo.replace(/\./g, "").replace(",", "."));
+  }
   let categoria = dato("categoria");
 
   const frase = dato("texto");

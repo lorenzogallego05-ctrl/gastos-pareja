@@ -167,6 +167,7 @@ function Historial() {
                       movimiento={m}
                       categorias={categorias}
                       perfiles={perfiles}
+                      mostrarFecha={false}
                     />
                   </li>
                 ))}
